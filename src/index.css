@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#F8FAFC] text-[#1E293B] antialiased min-h-screen font-sans transition-colors duration-200;
+  }
+}
+
+/* Dark mode text fixes */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0F172A !important;
+  color: #F1F5F9 !important;
+}
+
+/* Fix all text colors in dark mode */
+.dark h1, .dark h2, .dark h3, 
+.dark h4, .dark h5, .dark h6 {
+  color: #F1F5F9 !important;
+}
+
+.dark p, .dark span, .dark label,
+.dark div {
+  color: #CBD5E1;
+}
+
+/* Fix cards in dark mode */
+.dark .bg-white {
+  background-color: #1E293B !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #0F172A !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #334155 !important;
+}
+
+/* Fix borders in dark mode */
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+/* Fix input fields in dark mode */
+.dark input, .dark select, 
+.dark textarea {
+  background-color: #1E293B !important;
+  color: #F1F5F9 !important;
+  border-color: #475569 !important;
+}
+
+.dark input::placeholder {
+  color: #64748B !important;
+}
+
+/* Fix sidebar in dark mode */
+.dark .sidebar {
+  background-color: #1E293B !important;
+}
+
+/* Fix navbar in dark mode */
+.dark .navbar {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+}
+
+/* Fix table in dark mode */
+.dark table {
+  background-color: #1E293B !important;
+}
+
+.dark th {
+  background-color: #0F172A !important;
+  color: #94A3B8 !important;
+}
+
+.dark td {
+  color: #CBD5E1 !important;
+  border-color: #334155 !important;
+}
+
+/* Fix modal in dark mode */
+.dark .modal,
+.dark [role="dialog"] {
+  background-color: #1E293B !important;
+  color: #F1F5F9 !important;
+}
+
+/* Fix dropdown in dark mode */
+.dark select option {
+  background-color: #1E293B !important;
+  color: #F1F5F9 !important;
+}
+
+/* Fix badges and tags */
+.dark .text-gray-500 {
+  color: #94A3B8 !important;
+}
+
+.dark .text-gray-600 {
+  color: #CBD5E1 !important;
+}
+
+.dark .text-gray-700 {
+  color: #E2E8F0 !important;
+}
+
+.dark .text-gray-900 {
+  color: #F1F5F9 !important;
+}
+
+/* Fix secondary text */
+.dark .text-gray-400 {
+  color: #64748B !important;
+}
+
+/* Keep colored text visible */
+.dark .text-blue-600 {
+  color: #60A5FA !important;
+}
+
+.dark .text-green-600 {
+  color: #4ADE80 !important;
+}
+
+.dark .text-red-600 {
+  color: #F87171 !important;
+}
+
+.dark .text-orange-500 {
+  color: #FB923C !important;
+}
+
+/* Fix shadow in dark mode */
+.dark .shadow-sm {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
+}
+
+/* Fix scrollbar in dark mode */
+.dark ::-webkit-scrollbar {
+  background-color: #1E293B;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border-radius: 4px;
+}
