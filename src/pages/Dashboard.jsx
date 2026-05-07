@@ -1,42 +1,24 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   
-  // Get user safely from storage or context fallbacks
-  const getUser = () => {
-    try {
-      const session = sessionStorage.getItem('es_session');
-      if (session) return JSON.parse(session);
-      
-      const stored = localStorage.getItem('currentUser');
-      if (stored) return JSON.parse(stored);
-      
-      return null;
-    } catch(e) {
-      console.error("Dashboard: Error reading user storage", e);
-      return null;
-    }
-  };
-  
-  const user = getUser();
-  
-  // If no user redirect to login (Using <Navigate /> for render-cycle safety)
-  if (!user) {
+  // If no user redirect to login
+  if (!user && !loading) {
     return <Navigate to="/login" replace />;
   }
   
-  // Safe values with fallbacks
-  const name = user?.name || 'Student';
-  const dept = user?.department || 'N/A';
-  const sem = user?.semester || 'N/A';
-  const usn = user?.usn || user?.USN || 'N/A';
-  const gender = user?.gender || 'other';
-  const email = user?.email || 'N/A';
-  const role = user?.role || 'student';
+  // Map backend ProfileResponse to UI safely without silent fallbacks
+  const name = user?.user?.name;
+  const dept = user?.user?.department;
+  const sem = user?.academicState?.currentSemester;
+  const gender = user?.user?.gender;
+  const role = user?.user?.role;
   
   const getEmoji = () => {
     const g = gender?.toLowerCase();
@@ -53,9 +35,19 @@ const Dashboard = () => {
     year: 'numeric'
   }).toUpperCase();
   
-  const openSelected = user?.openElectiveSelected || null;
-  const deptTheory = user?.deptElectiveTheory || null;
-  const deptLab = user?.deptElectiveLab || null;
+  console.log("Dashboard user:", user);
+
+  // Dynamic elective states based on user.selections
+  const openSelected = user?.selections?.openElective || null;
+  const deptTheory = user?.selections?.deptTheory || null;
+  const deptLab = user?.selections?.deptLab || null;
+  
+  const openSessionActive = user?.activeSession?.type === 'OPEN' && user?.activeSession?.active;
+  const deptSessionActive = user?.activeSession?.type === 'DEPARTMENT' && user?.activeSession?.active;
+
+  if (loading || !user) {
+     return <div className="flex h-screen bg-gray-50 items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -89,8 +81,8 @@ const Dashboard = () => {
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
                   📚
                 </div>
-                <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-full uppercase tracking-[0.1em]">
-                  ● ACTIVE
+                <span className={`text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-[0.1em] ${openSessionActive ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-100'}`}>
+                  ● {openSessionActive ? 'ACTIVE' : 'INACTIVE'}
                 </span>
               </div>
               <h3 className="text-xl font-black text-gray-900 mb-2">
@@ -104,12 +96,12 @@ const Dashboard = () => {
                 {openSelected ? (
                   <div className="text-[13px] text-green-600 font-black flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-                    SELECTED: {typeof openSelected === 'object' ? openSelected.title : openSelected}
+                    {typeof openSelected === 'object' ? openSelected.title : openSelected}
                   </div>
                 ) : (
                   <div className="text-[13px] text-orange-500 font-black flex items-center gap-2">
                     <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.4)]"></div>
-                    NOT SELECTED YET
+                    NOT SELECTED
                   </div>
                 )}
               </div>
@@ -127,8 +119,8 @@ const Dashboard = () => {
                 <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
                   🎓
                 </div>
-                <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-full uppercase tracking-[0.1em]">
-                  ● ACTIVE
+                <span className={`text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-[0.1em] ${deptSessionActive ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-100'}`}>
+                  ● {deptSessionActive ? 'ACTIVE' : 'INACTIVE'}
                 </span>
               </div>
               <h3 className="text-xl font-black text-gray-900 mb-2">
@@ -142,12 +134,12 @@ const Dashboard = () => {
                 {deptTheory && deptLab ? (
                   <div className="text-[13px] text-green-600 font-black flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-                    SELECTIONS SUBMITTED
+                    SELECTED
                   </div>
                 ) : (
                   <div className="text-[13px] text-orange-500 font-black flex items-center gap-2">
                     <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.4)]"></div>
-                    PENDING SUBMISSION
+                    PENDING
                   </div>
                 )}
               </div>
@@ -166,12 +158,16 @@ const Dashboard = () => {
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Academic Level</span>
                 <div className="flex gap-2">
-                  <span className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-xl text-xs font-black border border-gray-100 uppercase">
-                    Semester {sem}
-                  </span>
-                  <span className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-xl text-xs font-black border border-gray-100 uppercase">
-                    {dept} Dept
-                  </span>
+                  {sem ? (
+                    <span className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-xl text-xs font-black border border-gray-100 uppercase">
+                      Semester {sem}
+                    </span>
+                  ) : null}
+                  {dept ? (
+                    <span className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-xl text-xs font-black border border-gray-100 uppercase">
+                      {dept} Dept
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>

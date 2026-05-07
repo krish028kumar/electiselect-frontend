@@ -1,11 +1,17 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const user = localStorage.getItem('currentUser');
+  const { loading } = useAuth();
+  const token = localStorage.getItem('jwt_token');
+  const location = useLocation();
   
-  if (!user) {
-    // Redirect to login if no user is found in localStorage
+  if (loading) {
+    return null; // or a loader component
+  }
+
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 

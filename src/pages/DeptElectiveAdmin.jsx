@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import Table from '../components/Table';
 import Loader from '../components/Loader';
-import { api } from '../services/api';
+import api from '../services/api';
 import { Layers, Users, BookOpen, Plus, Edit2, Trash2, Download } from 'lucide-react';
 
 const DeptElectiveAdmin = () => {

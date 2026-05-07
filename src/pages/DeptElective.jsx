@@ -6,79 +6,127 @@ import Loader from '../components/Loader';
 import Toast from '../components/Toast';
 import Modal from '../components/Modal';
 import ScheduleModal from '../components/ScheduleModal';
-import { api } from '../services/api';
+import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Calendar, Clock, Lock, CheckCircle, Info, ChevronRight, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DeptElective = () => {
-  const { user, updateCurrentUser } = useAuth();
-  const selectedDeptElectives = user?.deptElectiveTheory ? { theory: user.deptElectiveTheory, lab: user.deptElectiveLab } : null;
+  const { user } = useAuth();
   
-  const [electives, setElectives] = useState({ theory: [], lab: [] });
+  const [categories, setCategories] = useState([]);
+  const [lockedSelections, setLockedSelections] = useState(null);
+  const [selections, setSelections] = useState({});
+  const [sessionState, setSessionState] = useState('ACTIVE');
+  const [fetchError, setFetchError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  const [selections, setSelections] = useState({
-    theory: null,
-    lab: null
-  });
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true);
+      const [profile, electivesData] = await Promise.all([
+        api.getProfile(),
+        api.getDeptElectives()
+      ]);
+      
+      setCategories(electivesData || []);
+      
+      setFetchError(null);
+      const activeSession = profile?.activeSession;
+      if (!activeSession) {
+        setSessionState('NO_SESSION');
+      } else if (profile?.isEligible === false) {
+        setSessionState('NOT_ELIGIBLE');
+      } else {
+        const now = new Date();
+        const start = new Date(activeSession.start_time);
+        const end = new Date(activeSession.end_time);
+        
+        if (now < start) {
+          setSessionState('NOT_STARTED');
+        } else if (now > end) {
+          setSessionState('CLOSED');
+        } else {
+          setSessionState('ACTIVE');
+        }
+      }
+      
+      // TASK 2: Strict selection detection matching active session ID
+      const deptSelections = profile?.selections?.filter(s => 
+        (s?.session_id && s.session_id === activeSession?.id) || 
+        (s?.sessionId && s.sessionId === activeSession?.id)
+      ) || [];
+      if (deptSelections.length > 0) {
+        setLockedSelections(deptSelections);
+      } else {
+        setLockedSelections(null);
+      }
+    } catch (error) {
+      const errorMsg = error?.response?.data?.message || error?.message || "Failed to fetch department electives.";
+      setFetchError(errorMsg);
+      showToast(errorMsg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (selectedDeptElectives) {
-      setSelections({
-        theory: selectedDeptElectives.theory,
-        lab: selectedDeptElectives.lab
-      });
-    }
-
-    const fetchElectives = async () => {
-      try {
-        const data = await api.getDeptElectives();
-        setElectives(data);
-      } catch (error) {
-        showToast("Failed to fetch department electives", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchElectives();
-  }, [selectedDeptElectives]);
+    fetchInitialData();
+  }, []);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
 
-  const handleSelect = (category, subject) => {
-    if (selectedDeptElectives) return;
-    setSelections(prev => ({ ...prev, [category]: subject }));
+  const handleSelect = (categoryId, subject) => {
+    if (lockedSelections) return;
+    setSelections(prev => ({ ...prev, [categoryId]: subject }));
   };
+
+  const isFormComplete = categories.length > 0 && Object.keys(selections).length === categories.length;
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
     setIsSubmitting(true);
     
-    // Simulate API delay
     try {
-      // Simulate API delay
-      setTimeout(() => {
-        updateCurrentUser({
-          deptElectiveTheory: selections.theory,
-          deptElectiveLab: selections.lab
-        });
-        showToast("Selections submitted successfully 🎉");
-        setIsSubmitting(false);
-      }, 1500);
+      const payload = Object.entries(selections).map(([categoryId, subject]) => ({
+        categoryId: parseInt(categoryId),
+        subjectId: subject.id
+      }));
+
+      await api.submitDeptElectives(payload);
+      
+      showToast("Selections submitted successfully 🎉");
+      await fetchInitialData(); // Re-fetch to lock UI
     } catch (error) {
-      showToast("Submission failed", "error");
+      const errorCode = error.response?.data?.code;
+      if (errorCode === 'ALREADY_SELECTED') {
+        showToast("Selections already submitted.", "success");
+        await fetchInitialData();
+      } else if (errorCode === 'SESSION_INVALID') {
+        showToast("Session is closed or invalid.", "error");
+        setSessionState('CLOSED');
+        setSelections({}); // Clear selection state
+      } else if (errorCode === 'NOT_ELIGIBLE') {
+        showToast("You are not eligible for this session.", "error");
+      } else if (errorCode === 'NO_SEATS_AVAILABLE') {
+        showToast("Sorry, some seats just filled up!", "error");
+      } else if (errorCode === 'DEPARTMENT_RESTRICTED') {
+        showToast("Your department is restricted for some subjects.", "error");
+      } else if (errorCode === 'VALIDATION_FAILED') {
+        showToast(error.response?.data?.message || "Validation failed.", "error");
+      } else {
+        showToast(error?.response?.data?.message || error?.message || "Submission failed due to a server error.", "error");
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
-
-  const isFormComplete = selections.theory && selections.lab;
 
   const importantDates = [
     { label: "Selection Start", date: "10 Aug 2026", icon: CheckCircle, color: "text-green-500" },
@@ -95,11 +143,11 @@ const DeptElective = () => {
         
         <div className="mb-10">
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">Department Elective Selection</h1>
-          <p className="text-secondary mt-2 font-medium">Customize your academic path by selecting core theory and lab electives.</p>
+          <p className="text-secondary mt-2 font-medium">Customize your academic path by selecting core electives.</p>
         </div>
 
         <AnimatePresence>
-          {selectedDeptElectives && (
+          {lockedSelections && (
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -129,25 +177,68 @@ const DeptElective = () => {
         ) : (
           <div className="flex flex-col lg:flex-row gap-10">
             <div className="flex-1">
-              <CategorySection 
-                title="Theory Elective"
-                icon="📘"
-                colorTheme="blue"
-                subjects={electives.theory}
-                selectedId={selections.theory?.id}
-                onSelect={(subject) => handleSelect('theory', subject)}
-                disabled={!!selectedDeptElectives || isSubmitting}
-              />
-              
-              <CategorySection 
-                title="Lab Elective"
-                icon="💻"
-                colorTheme="purple"
-                subjects={electives.lab}
-                selectedId={selections.lab?.id}
-                onSelect={(subject) => handleSelect('lab', subject)}
-                disabled={!!selectedDeptElectives || isSubmitting}
-              />
+              {lockedSelections ? (
+                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex flex-col items-center text-center justify-center min-h-[300px]">
+                   <Lock className="w-16 h-16 text-gray-300 mb-4" />
+                   <h2 className="text-2xl font-black text-gray-800">Selection Locked</h2>
+                   <p className="text-gray-500 mt-2">Your department electives have been submitted. See summary panel for details.</p>
+                </div>
+              ) : fetchError ? (
+                <div className="bg-white p-12 rounded-[32px] shadow-sm border border-red-100 text-center flex flex-col items-center">
+                  <div className="text-red-300 mb-4 text-6xl">⚠️</div>
+                  <h3 className="text-xl font-bold text-red-900 mb-2">Connection Error</h3>
+                  <p className="text-red-700 mb-6">{fetchError}</p>
+                  <button 
+                    onClick={fetchInitialData}
+                    className="inline-flex items-center bg-white text-red-600 font-bold px-6 py-2 rounded-xl border border-red-200 hover:bg-red-50 transition-colors"
+                  >
+                    Retry Connection
+                  </button>
+                </div>
+              ) : sessionState === 'NO_SESSION' ? (
+                <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 text-center">
+                  <div className="text-gray-300 mb-4 text-6xl">🕒</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Session</h3>
+                  <p className="text-secondary">There is no active department elective session at the moment.</p>
+                </div>
+              ) : sessionState === 'NOT_STARTED' ? (
+                <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 text-center">
+                  <div className="text-gray-300 mb-4 text-6xl">⏳</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Session Not Started</h3>
+                  <p className="text-secondary">The elective selection window has not opened yet.</p>
+                </div>
+              ) : sessionState === 'NOT_ELIGIBLE' ? (
+                <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 text-center">
+                  <div className="text-red-300 mb-4 text-6xl">🚫</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Not Eligible</h3>
+                  <p className="text-secondary">You are not eligible to participate in the current session.</p>
+                </div>
+              ) : sessionState === 'CLOSED' ? (
+                <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 text-center">
+                  <div className="text-gray-300 mb-4 text-6xl">🔒</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Session Closed</h3>
+                  <p className="text-secondary">The window for elective selection has closed.</p>
+                </div>
+              ) : Array.isArray(categories) && categories.filter(cat => cat?.id && Array.isArray(cat?.subjects)).length > 0 ? (
+                categories.filter(cat => cat?.id && Array.isArray(cat?.subjects)).map((category, idx) => (
+                  <CategorySection 
+                    key={category.id}
+                    title={category.name}
+                    icon={idx % 2 === 0 ? "📘" : "💻"}
+                    colorTheme={idx % 2 === 0 ? "blue" : "purple"}
+                    subjects={category.subjects}
+                    selectedId={selections[category.id]?.id}
+                    onSelect={(subject) => handleSelect(category.id, subject)}
+                    disabled={!!lockedSelections || isSubmitting}
+                  />
+                ))
+              ) : sessionState === 'ACTIVE' ? (
+                <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 text-center">
+                  <div className="text-gray-300 mb-4 text-6xl">📚</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">No Categories Found</h3>
+                  <p className="text-secondary">Categories have not been configured yet.</p>
+                </div>
+              ) : null}
             </div>
 
             <div className="lg:w-[360px] flex-shrink-0 relative">
@@ -160,38 +251,34 @@ const DeptElective = () => {
                   </h3>
                   
                   <div className="space-y-6 mb-10 relative z-10">
-                    <div className="group">
-                      <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">Selected Theory</p>
-                      {selections.theory ? (
-                        <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 transition-all hover:border-primary">
-                          <p className="text-xs font-black text-primary uppercase mb-1">{selections.theory.code}</p>
-                          <p className="text-sm font-bold text-gray-800 leading-snug">{selections.theory.title}</p>
+                    {lockedSelections ? lockedSelections.map((sel, idx) => (
+                      <div key={idx} className="group">
+                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">{sel.category?.name || `Category ${sel.categoryId}`}</p>
+                        <div className="p-4 bg-green-50/50 rounded-2xl border border-green-100">
+                          <p className="text-xs font-black text-green-600 uppercase mb-1">{sel.subject?.courseCode || sel.subject?.code || ''}</p>
+                          <p className="text-sm font-bold text-gray-800 leading-snug">{sel.subject?.title}</p>
                         </div>
-                      ) : (
-                        <div className="p-4 bg-red-50/50 rounded-2xl border border-dashed border-red-200">
-                           <p className="text-sm text-red-500 font-bold italic flex items-center">
-                             Not selected
-                           </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">Selected Lab</p>
-                      {selections.lab ? (
-                        <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 transition-all hover:border-purple-400">
-                          <p className="text-xs font-black text-purple-600 uppercase mb-1">{selections.lab.code}</p>
-                          <p className="text-sm font-bold text-gray-800 leading-snug">{selections.lab.title}</p>
-                        </div>
-                      ) : (
-                        <div className="p-4 bg-red-50/50 rounded-2xl border border-dashed border-red-200">
-                           <p className="text-sm text-red-500 font-bold italic">Not selected</p>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )) : sessionState === 'ACTIVE' ? categories.map((cat, idx) => (
+                      <div key={cat.id} className="group">
+                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">{cat.name}</p>
+                        {selections[cat.id] ? (
+                          <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 transition-all hover:border-primary">
+                            <p className="text-xs font-black text-primary uppercase mb-1">{selections[cat.id].courseCode || selections[cat.id].code}</p>
+                            <p className="text-sm font-bold text-gray-800 leading-snug">{selections[cat.id].title}</p>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-red-50/50 rounded-2xl border border-dashed border-red-200">
+                             <p className="text-sm text-red-500 font-bold italic flex items-center">
+                               Not selected
+                             </p>
+                          </div>
+                        )}
+                      </div>
+                    )) : null}
                   </div>
 
-                  {!selectedDeptElectives && (
+                  {!lockedSelections && sessionState === 'ACTIVE' && (
                     <motion.button 
                       whileHover={isFormComplete ? { scale: 1.02 } : {}}
                       whileTap={isFormComplete ? { scale: 0.98 } : {}}
@@ -207,7 +294,7 @@ const DeptElective = () => {
                     </motion.button>
                   )}
                   
-                  {selectedDeptElectives && (
+                  {lockedSelections && (
                     <div className="w-full py-4 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 text-xs font-black uppercase tracking-widest border border-gray-100">
                       <Lock className="w-4 h-4 mr-2" /> All choices locked
                     </div>
@@ -255,9 +342,10 @@ const DeptElective = () => {
         {/* Confirmation Modal */}
         <Modal 
           isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => !isSubmitting && setIsModalOpen(false)}
           onConfirm={handleConfirmSubmit}
           title="Finalize Selections?"
+          confirmDisabled={isSubmitting}
         >
           <div className="space-y-5 py-2">
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start">
@@ -266,15 +354,13 @@ const DeptElective = () => {
                 Are you sure you want to finalize your selections? Once confirmed, your electives will be locked and cannot be changed.
               </p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-               <div className="mb-2">
-                 <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Theory Choice</p>
-                 <p className="font-bold text-gray-800">{selections.theory?.title}</p>
-               </div>
-               <div>
-                 <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Lab Choice</p>
-                 <p className="font-bold text-gray-800">{selections.lab?.title}</p>
-               </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+               {categories.map(cat => (
+                 <div key={cat.id}>
+                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{cat.name}</p>
+                   <p className="font-bold text-gray-800">{selections[cat.id]?.title || 'Not Selected'}</p>
+                 </div>
+               ))}
             </div>
           </div>
         </Modal>

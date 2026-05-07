@@ -11,6 +11,15 @@ import Notifications from './pages/Notifications'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import CompleteProfile from './pages/CompleteProfile'
+
+const FallbackRoute = () => {
+  const pathname = window.location.pathname;
+  if (pathname.startsWith('/login-success')) {
+    return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Authenticating...</div>;
+  }
+  return <Navigate to="/login" />;
+};
 
 function App() {
   return (
@@ -21,6 +30,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
+          <Route path="/complete-profile" element={<CompleteProfile />} />
+          
           {/* Protected Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/open-elective" element={<ProtectedRoute><OpenElective /></ProtectedRoute>} />
@@ -30,7 +41,8 @@ function App() {
           <Route path="/super-admin" element={<ProtectedRoute><SuperAdmin /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="/login-success" element={<div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Authenticating...</div>} />
+          <Route path="*" element={<FallbackRoute />} />
         </Routes>
       </AuthProvider>
     </LanguageProvider>

@@ -5,7 +5,7 @@ import Table from '../components/Table';
 import Loader from '../components/Loader';
 import DeptSelector from '../components/DeptSelector';
 import Modal from '../components/Modal';
-import { api } from '../services/api';
+import api from '../services/api';
 import { 
   Users, 
   CheckCircle, 

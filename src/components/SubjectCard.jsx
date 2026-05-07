@@ -1,10 +1,14 @@
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
-const SubjectCard = ({ subject, onSelect, isSelected, isDisabled }) => {
-  const { code, title, department, maxSeats, filledSeats } = subject;
+const SubjectCard = ({ subject, onSelect, selectedSubjectId, isDisabled }) => {
+  const { courseCode, code, title, department, maxSeats, filledSeats } = subject;
+  const displayCode = courseCode || code; // support both field names
   const seatsRemaining = maxSeats - filledSeats;
   const percentRemaining = (seatsRemaining / maxSeats) * 100;
   const progressPercentage = (filledSeats / maxSeats) * 100;
+  
+  const isSelected = selectedSubjectId === subject.id;
+  const isLocked = selectedSubjectId !== null;
   
   let statusText = "Available";
   let statusColor = "success";
@@ -43,9 +47,12 @@ const SubjectCard = ({ subject, onSelect, isSelected, isDisabled }) => {
     <div className={`p-6 bg-white rounded-2xl shadow-sm border ${isSelected ? 'border-primary outline outline-2 outline-primary/20' : 'border-gray-100'}`}>
       <div className="flex justify-between items-start mb-4">
         <div>
-          <span className="text-primary font-bold text-sm tracking-widest">{code}</span>
-          <h3 className="text-lg font-bold text-gray-900 mt-1 line-clamp-2">{title}</h3>
-          <p className="text-sm text-secondary mt-1">{department} Department</p>
+          <h3 className="text-lg font-bold text-gray-900 line-clamp-2">{title}</h3>
+          <p className="text-sm text-gray-400 mt-1 font-normal">
+            {displayCode && <span>{displayCode}</span>}
+            {displayCode && department && <span className="mx-1.5">&bull;</span>}
+            {department && <span>{department} Department</span>}
+          </p>
         </div>
       </div>
 
@@ -72,16 +79,16 @@ const SubjectCard = ({ subject, onSelect, isSelected, isDisabled }) => {
 
       <button
         onClick={() => onSelect(subject)}
-        disabled={isDisabled || seatsRemaining === 0 || isSelected}
+        disabled={isSelected || isLocked || seatsRemaining === 0}
         className={`w-full mt-6 py-3 rounded-xl font-semibold transition-all ${
           isSelected
-            ? 'bg-primary text-white cursor-default'
-            : isDisabled || seatsRemaining === 0
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+            ? "bg-green-500 text-white cursor-not-allowed"
+            : isLocked
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-blue-500 text-white hover:bg-blue-600"
         }`}
       >
-        {isSelected ? 'Selected' : seatsRemaining === 0 ? 'Seats Full' : 'Select'}
+        {isSelected ? "Selected" : seatsRemaining === 0 ? "Seats Full" : "Select"}
       </button>
     </div>
   );

@@ -1,37 +1,40 @@
-import { mockOpenElectives, mockDeptElectives, mockStaffStats, mockStudents } from '../data/mockData';
+import axios from "axios";
 
-// Simulated delay for realistic API interactions
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const api = axios.create({
+  baseURL: "http://localhost:8080/api",
+});
 
-export const api = {
-  getOpenElectives: async () => {
-    await delay(500);
-    return mockOpenElectives;
-  },
-  
-  getDeptElectives: async () => {
-    await delay(500);
-    return mockDeptElectives;
-  },
-
-  getMockStudents: async () => {
-    await delay(600);
-    return mockStudents;
-  },
-
-  selectOpenElective: async (subjectCode) => {
-    await delay(800);
-    // Real implementation would make an axios post call
-    return { success: true, message: `Successfully registered for ${subjectCode}` };
-  },
-
-  submitDeptElectives: async (selections) => {
-    await delay(1000);
-    return { success: true, message: "Selections submitted successfully!" };
-  },
-
-  getStaffStats: async () => {
-    await delay(400);
-    return mockStaffStats;
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("jwt_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-};
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("jwt_token");
+      // Only redirect if we are not actively handling the login success flow
+      if (!window.location.pathname.startsWith('/login-success')) {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+api.getProfile = () => api.get("/student/profile");
+api.getMe = () => api.get("/user/me");
+api.completeProfile = (data) => api.post("/user/complete-profile", data);
+api.getOpenElectives = () => api.get("/student/available-subjects");
+api.getMySelection = () => api.get("/student/my-selection");
+api.selectOpenElective = (subjectId) => api.post(`/student/register/${subjectId}`);
+api.getDeptElectives = () => api.get("/electives/dept");
+api.submitDeptElectives = (selections) => api.post("/electives/dept/select", selections);
+
+export default api;
