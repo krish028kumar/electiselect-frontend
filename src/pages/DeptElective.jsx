@@ -87,7 +87,7 @@ const DeptElective = () => {
     setSelections(prev => ({ ...prev, [categoryId]: subject }));
   };
 
-  const isFormComplete = categories.length > 0 && Object.keys(selections).length === categories.length;
+  const isFormComplete = categories.length > 0 && Object.keys(selections).length === categories.filter(cat => Array.isArray(cat?.subjects) && cat.subjects.length > 0).length;
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
@@ -219,16 +219,16 @@ const DeptElective = () => {
                   <h3 className="text-xl font-bold text-gray-900 mb-2">Session Closed</h3>
                   <p className="text-secondary">The window for elective selection has closed.</p>
                 </div>
-              ) : Array.isArray(categories) && categories.filter(cat => cat?.id && Array.isArray(cat?.subjects)).length > 0 ? (
-                categories.filter(cat => cat?.id && Array.isArray(cat?.subjects)).map((category, idx) => (
+              ) : Array.isArray(categories) && categories.filter(cat => cat?.categoryId && Array.isArray(cat?.subjects)).length > 0 ? (
+                categories.filter(cat => cat?.categoryId && Array.isArray(cat?.subjects)).map((category, idx) => (
                   <CategorySection 
-                    key={category.id}
-                    title={category.name}
+                    key={category.categoryId}
+                    title={category.categoryName}
                     icon={idx % 2 === 0 ? "📘" : "💻"}
                     colorTheme={idx % 2 === 0 ? "blue" : "purple"}
-                    subjects={category.subjects}
-                    selectedId={selections[category.id]?.id}
-                    onSelect={(subject) => handleSelect(category.id, subject)}
+                    subjects={category.subjects.map(s => ({ ...s, code: s.courseCode }))}
+                    selectedId={selections[category.categoryId]?.id}
+                    onSelect={(subject) => handleSelect(category.categoryId, subject)}
                     disabled={!!lockedSelections || isSubmitting}
                   />
                 ))
@@ -253,19 +253,19 @@ const DeptElective = () => {
                   <div className="space-y-6 mb-10 relative z-10">
                     {lockedSelections ? lockedSelections.map((sel, idx) => (
                       <div key={idx} className="group">
-                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">{sel.category?.name || `Category ${sel.categoryId}`}</p>
+                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">{sel.category?.categoryName || sel.category?.name || `Category ${sel.categoryId}`}</p>
                         <div className="p-4 bg-green-50/50 rounded-2xl border border-green-100">
                           <p className="text-xs font-black text-green-600 uppercase mb-1">{sel.subject?.courseCode || sel.subject?.code || ''}</p>
                           <p className="text-sm font-bold text-gray-800 leading-snug">{sel.subject?.title}</p>
                         </div>
                       </div>
-                    )) : sessionState === 'ACTIVE' ? categories.map((cat, idx) => (
-                      <div key={cat.id} className="group">
-                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">{cat.name}</p>
-                        {selections[cat.id] ? (
+                    )) : sessionState === 'ACTIVE' ? categories.map((cat) => (
+                      <div key={cat.categoryId || cat.id} className="group">
+                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-[0.2em] mb-2">{cat.categoryName || cat.name}</p>
+                        {selections[cat.categoryId || cat.id] ? (
                           <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 transition-all hover:border-primary">
-                            <p className="text-xs font-black text-primary uppercase mb-1">{selections[cat.id].courseCode || selections[cat.id].code}</p>
-                            <p className="text-sm font-bold text-gray-800 leading-snug">{selections[cat.id].title}</p>
+                            <p className="text-xs font-black text-primary uppercase mb-1">{selections[cat.categoryId || cat.id].courseCode || selections[cat.categoryId || cat.id].code}</p>
+                            <p className="text-sm font-bold text-gray-800 leading-snug">{selections[cat.categoryId || cat.id].title}</p>
                           </div>
                         ) : (
                           <div className="p-4 bg-red-50/50 rounded-2xl border border-dashed border-red-200">
@@ -356,9 +356,9 @@ const DeptElective = () => {
             </div>
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
                {categories.map(cat => (
-                 <div key={cat.id}>
-                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{cat.name}</p>
-                   <p className="font-bold text-gray-800">{selections[cat.id]?.title || 'Not Selected'}</p>
+                 <div key={cat.categoryId || cat.id}>
+                   <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{cat.categoryName || cat.name}</p>
+                   <p className="font-bold text-gray-800">{selections[cat.categoryId || cat.id]?.title || 'Not Selected'}</p>
                  </div>
                ))}
             </div>

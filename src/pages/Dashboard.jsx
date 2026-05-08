@@ -1,32 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  
+
+  const [openSessionActive, setOpenSessionActive] = useState(false);
+  const [deptSessionActive, setDeptSessionActive] = useState(false);
+
+  useEffect(() => {
+    // Fetch profile to get per-type session status.
+    // AuthContext only stores identity (/api/user/me), not session state.
+    api.getProfile()
+      .then(profile => {
+        const now = new Date();
+
+        const openSess = profile?.openSession;
+        setOpenSessionActive(
+          openSess?.active === true &&
+          !!openSess?.startTime && !!openSess?.endTime &&
+          now >= new Date(openSess.startTime) &&
+          now <= new Date(openSess.endTime)
+        );
+
+        const deptSess = profile?.deptSession;
+        setDeptSessionActive(
+          deptSess?.active === true &&
+          !!deptSess?.startTime && !!deptSess?.endTime &&
+          now >= new Date(deptSess.startTime) &&
+          now <= new Date(deptSess.endTime)
+        );
+      })
+      .catch(() => {
+        // Profile fetch failed — sessions remain inactive (safe default)
+        setOpenSessionActive(false);
+        setDeptSessionActive(false);
+      });
+  }, []);
+
   // If no user redirect to login
   if (!user && !loading) {
     return <Navigate to="/login" replace />;
   }
-  
-  // Map backend ProfileResponse to UI safely without silent fallbacks
-  const name = user?.user?.name;
-  const dept = user?.user?.department;
-  const sem = user?.academicState?.currentSemester;
-  const gender = user?.user?.gender;
-  const role = user?.user?.role;
-  
-  const getEmoji = () => {
-    const g = gender?.toLowerCase();
-    if (g === 'male') return '👦';
-    if (g === 'female') return '👧';
-    return '👋';
-  };
-  
+
+  // Map backend /api/user/me response to UI safely
+  // AuthContext user comes from /api/user/me which returns flat fields
+  const name = user?.name;
+  const dept = user?.department;
+  const sem  = user?.semester;
+  const role = user?.role;
+
+  const getEmoji = () => '👋';
+
   const deadline = new Date();
   deadline.setDate(deadline.getDate() + 10);
   const deadlineStr = deadline.toLocaleDateString('en-US', {
@@ -34,16 +63,13 @@ const Dashboard = () => {
     day: 'numeric',
     year: 'numeric'
   }).toUpperCase();
-  
+
   console.log("Dashboard user:", user);
 
   // Dynamic elective states based on user.selections
   const openSelected = user?.selections?.openElective || null;
   const deptTheory = user?.selections?.deptTheory || null;
   const deptLab = user?.selections?.deptLab || null;
-  
-  const openSessionActive = user?.activeSession?.type === 'OPEN' && user?.activeSession?.active;
-  const deptSessionActive = user?.activeSession?.type === 'DEPARTMENT' && user?.activeSession?.active;
 
   if (loading || !user) {
      return <div className="flex h-screen bg-gray-50 items-center justify-center">Loading...</div>;
