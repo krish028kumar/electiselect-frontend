@@ -16,7 +16,7 @@ const Sidebar = ({ active, role: propRole, user: propUser }) => {
   const location = useLocation();
 
   const user = propUser || authUser;
-  const role = propRole || user?.role || 'student';
+  const role = propRole || user?.role || 'STUDENT';
 
   const handleLogout = () => {
     logout();
@@ -24,25 +24,25 @@ const Sidebar = ({ active, role: propRole, user: propUser }) => {
   };
 
   const getMenuItems = () => {
-    if (user?.role === 'student') {
+    if (user?.role === 'STUDENT') {
       return [
         { name: t('dashboard'), icon: LayoutDashboard, path: '/dashboard' },
         { name: t('openElective'), icon: BookOpen, path: '/open-elective' },
         { name: t('deptElective'), icon: Layers, path: '/dept-elective' },
       ];
     }
-    if (user?.role === 'staff') {
+    if (user?.role === 'ISE_ADMIN') {
       return [
         { name: t('openElective'), icon: BookOpen, path: '/open-elective/admin' },
         { name: t('deptElective'), icon: Layers, path: '/dept-elective/admin' },
       ];
     }
-    if (user?.role === 'superadmin') {
+    if (user?.role === 'SUPER_ADMIN') {
       return [
         { name: t('dashboard'), icon: LayoutDashboard, path: '/super-admin' },
-        { name: t('settings'), icon: Settings, path: '/super-admin' },
-        { name: 'Students', icon: Users, path: '/super-admin' },
-        { name: 'System', icon: Database, path: '/super-admin' },
+        { name: t('settings'), icon: Settings, path: '/super-admin/settings' },
+        { name: 'Students', icon: Users, path: '/super-admin/students' },
+        { name: 'System', icon: Database, path: '/super-admin/system' },
       ];
     }
     return [];
@@ -65,7 +65,10 @@ const Sidebar = ({ active, role: propRole, user: propUser }) => {
           <ul className="space-y-2 px-4">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.includes(item.path);
+              // Exact match for root paths like /super-admin to avoid highlighting everything, prefix match for others.
+              const isActive = item.path === '/super-admin' 
+                  ? location.pathname === item.path 
+                  : location.pathname.startsWith(item.path);
 
               return (
                 <li key={item.name}>

@@ -7,6 +7,8 @@ import OpenElectiveAdmin from './pages/OpenElectiveAdmin'
 import DeptElective from './pages/DeptElective'
 import DeptElectiveAdmin from './pages/DeptElectiveAdmin'
 import SuperAdmin from './pages/SuperAdmin'
+import SystemAdmin from './pages/SystemAdmin'
+import SuperAdminPlaceholder from './pages/SuperAdminPlaceholder'
 import Notifications from './pages/Notifications'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
@@ -33,12 +35,17 @@ function App() {
           <Route path="/complete-profile" element={<CompleteProfile />} />
           
           {/* Protected Routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/open-elective" element={<ProtectedRoute><OpenElective /></ProtectedRoute>} />
-          <Route path="/open-elective/admin" element={<ProtectedRoute><OpenElectiveAdmin /></ProtectedRoute>} />
-          <Route path="/dept-elective" element={<ProtectedRoute><DeptElective /></ProtectedRoute>} />
-          <Route path="/dept-elective/admin" element={<ProtectedRoute><DeptElectiveAdmin /></ProtectedRoute>} />
-          <Route path="/super-admin" element={<ProtectedRoute><SuperAdmin /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['STUDENT']}><Dashboard /></ProtectedRoute>} />
+          <Route path="/open-elective" element={<ProtectedRoute allowedRoles={['STUDENT']}><OpenElective /></ProtectedRoute>} />
+          <Route path="/open-elective/admin" element={<ProtectedRoute allowedRoles={['ISE_ADMIN', 'SUPER_ADMIN']}><OpenElectiveAdmin /></ProtectedRoute>} />
+          <Route path="/dept-elective" element={<ProtectedRoute allowedRoles={['STUDENT']}><DeptElective /></ProtectedRoute>} />
+          <Route path="/dept-elective/admin" element={<ProtectedRoute allowedRoles={['ISE_ADMIN', 'SUPER_ADMIN']}><DeptElectiveAdmin /></ProtectedRoute>} />
+          
+          <Route path="/super-admin" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdmin /></ProtectedRoute>} />
+          <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminPlaceholder title="Settings" /></ProtectedRoute>} />
+          <Route path="/super-admin/students" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminPlaceholder title="Student Management" /></ProtectedRoute>} />
+          <Route path="/super-admin/system" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SystemAdmin /></ProtectedRoute>} />
+          
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           
           <Route path="/login-success" element={<div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Authenticating...</div>} />

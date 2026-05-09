@@ -8,7 +8,7 @@ const SubjectCard = ({ subject, onSelect, selectedSubjectId, isDisabled }) => {
   const progressPercentage = (filledSeats / maxSeats) * 100;
   
   const isSelected = selectedSubjectId === subject.id;
-  const isLocked = selectedSubjectId !== null;
+  const isLocked = isDisabled || selectedSubjectId !== null;
   
   let statusText = "Available";
   let statusColor = "success";
@@ -88,7 +88,7 @@ const SubjectCard = ({ subject, onSelect, selectedSubjectId, isDisabled }) => {
             : "bg-blue-500 text-white hover:bg-blue-600"
         }`}
       >
-        {isSelected ? "Selected" : seatsRemaining === 0 ? "Seats Full" : "Select"}
+        {isSelected ? "Selected" : isLocked ? "Locked" : seatsRemaining === 0 ? "Seats Full" : "Select"}
       </button>
     </div>
   );

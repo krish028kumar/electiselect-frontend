@@ -15,53 +15,44 @@ const DeptElective = () => {
   const { user } = useAuth();
   
   const [categories, setCategories] = useState([]);
-  const [lockedSelections, setLockedSelections] = useState(null);
-  const [selections, setSelections] = useState({});
-  const [sessionState, setSessionState] = useState('ACTIVE');
+      const [lockedSelections, setLockedSelections] = useState(null);
+      const [selections, setSelections] = useState({});
+      const [sessionState, setSessionState] = useState('ACTIVE');
   const [fetchError, setFetchError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [deptStatus, setDeptStatus] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [profile, electivesData] = await Promise.all([
-        api.getProfile(),
-        api.getDeptElectives()
-      ]);
+          const [status, electivesData, mySelection] = await Promise.all([
+            api.getDeptStatus(),
+            api.getDeptElectives(),
+            api.getDeptMySelection()
+          ]);
+          setDeptStatus(status || null);
       
       setCategories(electivesData || []);
       
       setFetchError(null);
-      const activeSession = profile?.activeSession;
-      if (!activeSession) {
-        setSessionState('NO_SESSION');
-      } else if (profile?.isEligible === false) {
-        setSessionState('NOT_ELIGIBLE');
-      } else {
-        const now = new Date();
-        const start = new Date(activeSession.start_time);
-        const end = new Date(activeSession.end_time);
-        
-        if (now < start) {
-          setSessionState('NOT_STARTED');
-        } else if (now > end) {
-          setSessionState('CLOSED');
-        } else {
-          setSessionState('ACTIVE');
-        }
-      }
+          if (!status?.visible) {
+            if (status && status.eligible === false) {
+              setSessionState('NOT_ELIGIBLE');
+            } else if (!status?.sessionId) {
+              setSessionState('NO_SESSION');
+            } else {
+              setSessionState('CLOSED');
+            }
+          } else {
+            setSessionState('ACTIVE');
+          }
       
-      // TASK 2: Strict selection detection matching active session ID
-      const deptSelections = profile?.selections?.filter(s => 
-        (s?.session_id && s.session_id === activeSession?.id) || 
-        (s?.sessionId && s.sessionId === activeSession?.id)
-      ) || [];
-      if (deptSelections.length > 0) {
-        setLockedSelections(deptSelections);
+      if (mySelection?.submitted && Array.isArray(mySelection.selections) && mySelection.selections.length > 0) {
+        setLockedSelections(mySelection.selections);
       } else {
         setLockedSelections(null);
       }
@@ -128,12 +119,20 @@ const DeptElective = () => {
     }
   };
 
-  const importantDates = [
-    { label: "Selection Start", date: "10 Aug 2026", icon: CheckCircle, color: "text-green-500" },
-    { label: "Selection Deadline", date: "15 Aug 2026", icon: Clock, color: "text-orange-500" },
-    { label: "Lock Date", date: "16 Aug 2026", icon: Lock, color: "text-red-500" },
-    { label: "Results Announcement", date: "18 Aug 2026", icon: Calendar, color: "text-blue-500" }
-  ];
+  const formatDate = (value) => value ? new Date(value).toLocaleString() : '—';
+
+  const statusLabel = () => {
+    if (!deptStatus?.sessionId) return 'INACTIVE';
+    if (deptStatus?.visible) return 'ACTIVE';
+    if (deptStatus?.sessionActive) {
+      const now = new Date();
+      const start = deptStatus?.startTime ? new Date(deptStatus.startTime) : null;
+      const end = deptStatus?.endTime ? new Date(deptStatus.endTime) : null;
+      if (start && now < start) return 'UPCOMING';
+      if (end && now > end) return 'CLOSED';
+    }
+    return 'INACTIVE';
+  };
 
   return (
     <div className="min-h-screen flex bg-slate-50">
@@ -307,30 +306,34 @@ const DeptElective = () => {
                   <h3 className="font-extrabold text-lg mb-6 flex items-center">
                     <Calendar className="w-5 h-5 mr-3 text-primary" /> Important Dates
                   </h3>
-                  
-                  <div className="space-y-5 mb-8 relative z-10">
-                    {importantDates.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <div className="flex items-center">
-                          <item.icon className={`w-4 h-4 mr-3 ${item.color}`} />
-                          <span className="text-xs font-bold text-gray-400">{item.label}</span>
-                        </div>
-                        <span className="text-xs font-black tracking-tight">{item.date}</span>
-                      </div>
-                    ))}
+
+                  <div className="space-y-4 mb-6 relative z-10">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <span className="text-xs font-bold text-gray-400">Session Type</span>
+                      <span className="text-xs font-black tracking-tight">{deptStatus?.sessionType || 'DEPARTMENT'}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <span className="text-xs font-bold text-gray-400">Academic Year</span>
+                      <span className="text-xs font-black tracking-tight">{deptStatus?.academicYear || '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <span className="text-xs font-bold text-gray-400">Selection Window Opens</span>
+                      <span className="text-xs font-black tracking-tight">{formatDate(deptStatus?.startTime)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <span className="text-xs font-bold text-gray-400">Selection Window Closes</span>
+                      <span className="text-xs font-black tracking-tight">{formatDate(deptStatus?.endTime)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-400">Status</span>
+                      <span className="text-xs font-black tracking-tight">{statusLabel()}</span>
+                    </div>
                   </div>
 
-                  <button 
-                    onClick={() => setIsScheduleModalOpen(true)}
-                    className="w-full py-3 bg-white/10 hover:bg-white/15 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center border border-white/10"
-                  >
-                    View Full Schedule <ChevronRight className="w-3 h-3 ml-2" />
-                  </button>
-                  
-                  <div className="mt-6 p-3 bg-white/5 rounded-xl flex items-start border border-white/10">
+                  <div className="mt-4 p-3 bg-white/5 rounded-xl flex items-start border border-white/10">
                     <Info className="w-4 h-4 text-primary mr-3 flex-shrink-0 mt-0.5" />
                     <p className="text-[10px] font-bold text-gray-400 leading-relaxed italic">
-                      Selections cannot be modified after the deadline has passed.
+                      Eligibility is determined by your current semester and session availability.
                     </p>
                   </div>
                 </div>
@@ -369,6 +372,7 @@ const DeptElective = () => {
         <ScheduleModal 
           isOpen={isScheduleModalOpen} 
           onClose={() => setIsScheduleModalOpen(false)} 
+          sessionInfo={{ ...deptStatus, status: statusLabel() }}
         />
 
         {isSubmitting && <Loader fullScreen />}

@@ -20,6 +20,7 @@ const OpenElective = () => {
   
   const [modalOpen, setModalOpen] = useState(false);
   const [subjectToSelect, setSubjectToSelect] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
   
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,38 +43,32 @@ const OpenElective = () => {
     const initData = async () => {
       try {
         setLoading(true);
-        const profile = await api.getProfile();
-        
-        const activeSession = profile?.activeSession;
-        if (!activeSession) {
-          setSessionState('NO_SESSION');
-        } else if (profile?.isEligible === false) {
-          setSessionState('NOT_ELIGIBLE');
-        } else {
-          const now = new Date();
-          const start = new Date(activeSession.start_time);
-          const end = new Date(activeSession.end_time);
-          
-          if (now < start) {
-            setSessionState('NOT_STARTED');
-          } else if (now > end) {
-            setSessionState('CLOSED');
+        const status = await api.getOpenStatus();
+
+          if (!status?.visible) {
+            if (status && status.eligible === false) {
+              setSessionState('NOT_ELIGIBLE');
+            } else if (!status?.sessionId) {
+              setSessionState('NO_SESSION');
+            } else {
+              setSessionState('CLOSED');
+            }
           } else {
             setSessionState('ACTIVE');
           }
-        }
-        
-        // Fetch user's current selection
-        try {
-          const res = await api.getMySelection();
-          if (res) {
-            setSelectedSubjectId(res); // assuming backend returns just the ID, or handle accordingly if object
+
+          if (status?.submitted) {
+            setIsLocked(true);
+            try {
+              const res = await api.getMySelection();
+              setSelectedSubjectId(res || null);
+            } catch (err) {
+              setSelectedSubjectId(null);
+            }
           } else {
+            setIsLocked(false);
             setSelectedSubjectId(null);
           }
-        } catch (err) {
-          setSelectedSubjectId(null);
-        }
         
         await fetchSubjects(false);
       } catch (err) {
@@ -87,7 +82,7 @@ const OpenElective = () => {
 
   // Task 3: Stop polling after selection or during submission to prevent race conditions
   useEffect(() => {
-    if (selectedSubjectId || isSubmitting) return; // Stop polling if already selected or currently submitting
+    if (selectedSubjectId || isSubmitting || isLocked) return; // Stop polling if already selected or currently submitting
     
     const intervalId = setInterval(() => {
       fetchSubjects(false); // Background fetch, no loading state
@@ -100,6 +95,7 @@ const OpenElective = () => {
   };
 
   const handleSelectClick = (subject) => {
+    if (isLocked) return;
     setSubjectToSelect(subject);
     setModalOpen(true);
   };
@@ -277,7 +273,7 @@ const OpenElective = () => {
                     subject={subject} 
                     onSelect={handleSelectClick}
                     selectedSubjectId={selectedSubjectId}
-                    isDisabled={isSubmitting}
+                    isDisabled={isSubmitting || isLocked}
                   />
                 ))}
               </div>

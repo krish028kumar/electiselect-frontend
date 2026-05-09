@@ -162,7 +162,7 @@ const EditProfileModal = ({ isOpen, onClose }) => {
                 />
               </div>
 
-              {user.role === 'student' && (
+              {user.role === 'STUDENT' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

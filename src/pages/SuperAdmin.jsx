@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { 
   UploadCloud, Settings, Database, Server, Info, Search, 
   Users, BookCheck, ClipboardCheck, BarChart3, Filter, PieChart
@@ -14,49 +16,54 @@ const SuperAdmin = () => {
   const [semFilter, setSemFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  // Load real data
-  const students = useMemo(() => {
-    const users = JSON.parse(localStorage.getItem('es_users') || '[]');
-    return users.filter(u => u.role === 'student' && !u.isDeleted);
-  }, []);
+  const [students, setStudents] = useState([]);
+  const [stats, setStats] = useState({ total: 0, openSelected: 0, deptSelected: 0, bothSelected: 0 });
+  const [popularElectives, setPopularElectives] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Calculate Real-Time Stats
-  const stats = useMemo(() => {
-    const total = students.length;
-    const openSelected = students.filter(s => !!s.openElectiveSelected).length;
-    const deptSelected = students.filter(s => !!s.deptElectiveTheory && !!s.deptElectiveLab).length;
-    const bothSelected = students.filter(s => !!s.openElectiveSelected && !!s.deptElectiveTheory && !!s.deptElectiveLab).length;
-    const noneSelected = students.filter(s => !s.openElectiveSelected && !s.deptElectiveTheory && !s.deptElectiveLab).length;
+  // Load backend data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [statsData, studentsData, popularData] = await Promise.all([
+          api.getAdminDashboardStats(),
+          api.getAdminDashboardStudents(),
+          api.getPopularElectives()
+        ]);
+        
+        // Map backend stats to our UI state
+        setStats({
+          total: statsData.registeredStudents || 0,
+          openSelected: statsData.openElectiveTaken || 0,
+          deptSelected: statsData.deptElectiveTaken || 0,
+          bothSelected: statsData.fullyCompleted || 0
+        });
 
-    // Course Popularity (Open Elective)
-    const courseCounts = {};
-    students.forEach(s => {
-      if (s.openElectiveSelected) {
-        const title = s.openElectiveSelected.title;
-        courseCounts[title] = (courseCounts[title] || 0) + 1;
+        setStudents(studentsData || []);
+        setPopularElectives(popularData || []);
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err);
+      } finally {
+        setLoading(false);
       }
-    });
-    
-    const sortedCourses = Object.entries(courseCounts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
+    };
 
-    return { total, openSelected, deptSelected, bothSelected, noneSelected, popularCourse: sortedCourses[0]?.name || 'N/A', courseStats: sortedCourses };
-  }, [students]);
+    fetchDashboardData();
+  }, []);
 
   // Filtered Data for Table
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
-      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           s.USN.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           (s.usn || s.USN || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesDept = deptFilter === 'All' || s.department === deptFilter;
       const matchesSem = semFilter === 'All' || s.semester?.toString() === semFilter;
       
       let matchesStatus = true;
       if (statusFilter === 'Selected') {
-        matchesStatus = !!s.openElectiveSelected || !!s.deptElectiveTheory;
+        matchesStatus = s.openElectiveSelected || s.deptElectiveCompleted;
       } else if (statusFilter === 'Not Selected') {
-        matchesStatus = !s.openElectiveSelected && !s.deptElectiveTheory;
+        matchesStatus = !s.openElectiveSelected && !s.deptElectiveCompleted;
       }
 
       return matchesSearch && matchesDept && matchesSem && matchesStatus;
@@ -64,42 +71,33 @@ const SuperAdmin = () => {
   }, [students, searchQuery, deptFilter, semFilter, statusFilter]);
 
   const studentColumns = [
-    { header: 'USN', accessor: 'USN', render: (row) => <span className="font-bold text-gray-700">{row.USN}</span> },
-    { header: 'Student Name', accessor: 'name', render: (row) => <span className="font-semibold text-gray-900">{row.name}</span> },
-    { header: 'Dept', accessor: 'department', render: (row) => <span className="text-xs font-bold px-2 py-0.5 bg-gray-100 rounded-md">{row.department}</span> },
+    { header: 'USN', accessor: 'usn', render: (row) => <span className="font-bold text-gray-700">{row.usn || '—'}</span> },
+    { header: 'Student Name', accessor: 'name', render: (row) => <span className="font-semibold text-gray-900">{row.name || '—'}</span> },
+    { header: 'Dept', accessor: 'department', render: (row) => <span className="text-xs font-bold px-2 py-0.5 bg-gray-100 rounded-md">{row.department || '—'}</span> },
     { header: 'Sem', accessor: 'semester' },
     { 
       header: 'Open Elective', 
       accessor: 'openSelected',
       render: (row) => row.openElectiveSelected ? (
-        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">{row.openElectiveSelected.code}</span>
+        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">Selected</span>
       ) : (
         <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">None</span>
       )
     },
     { 
-      header: 'Dept Theory', 
-      accessor: 'deptTheory',
-      render: (row) => row.deptElectiveTheory ? (
-        <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-100">{row.deptElectiveTheory.code}</span>
+      header: 'Dept Elective', 
+      accessor: 'deptCompleted',
+      render: (row) => row.deptElectiveCompleted ? (
+        <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-100">Completed</span>
       ) : (
-        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">None</span>
-      )
-    },
-    { 
-      header: 'Dept Lab', 
-      accessor: 'deptLab',
-      render: (row) => row.deptElectiveLab ? (
-        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">{row.deptElectiveLab.code}</span>
-      ) : (
-        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">None</span>
+        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Pending</span>
       )
     },
     {
       header: 'Status',
       accessor: 'status',
       render: (row) => {
-        const isComplete = row.openElectiveSelected && row.deptElectiveTheory && row.deptElectiveLab;
+        const isComplete = row.openElectiveSelected && row.deptElectiveCompleted;
         return (
           <span className={`text-[10px] font-black uppercase tracking-widest ${isComplete ? 'text-green-500' : 'text-amber-500'}`}>
             {isComplete ? 'Complete' : 'Pending'}
@@ -205,11 +203,33 @@ const SuperAdmin = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <Table columns={studentColumns} data={filteredStudents} />
-              {filteredStudents.length === 0 && (
+              {filteredStudents.length === 0 ? (
                 <div className="py-20 text-center">
                   <p className="text-gray-400 font-bold italic">No students match the criteria.</p>
                 </div>
+              ) : (
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/60">
+                      {studentColumns.map((col) => (
+                        <th key={col.accessor} className="px-4 py-3 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest whitespace-nowrap">
+                          {col.header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((row, idx) => (
+                      <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        {studentColumns.map((col) => (
+                          <td key={col.accessor} className="px-4 py-3">
+                            {col.render ? col.render(row) : row[col.accessor] ?? '—'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
@@ -221,14 +241,16 @@ const SuperAdmin = () => {
                <h3 className="font-extrabold text-lg mb-6 flex items-center"><BarChart3 size={20} className="mr-3 text-primary" /> Popular Electives</h3>
                
                <div className="space-y-5 mb-8 relative z-10">
-                 {stats.courseStats.length > 0 ? stats.courseStats.slice(0, 5).map((course, idx) => (
+                 {loading ? (
+                   <p className="text-center text-gray-500 py-6 italic font-bold">Loading...</p>
+                 ) : popularElectives.length > 0 ? popularElectives.map((course, idx) => (
                    <div key={idx} className="flex items-center justify-between">
                      <div className="flex flex-col">
                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">RANK #{idx+1}</span>
-                       <span className="text-sm font-bold truncate max-w-[180px]">{course.name}</span>
+                       <span className="text-sm font-bold truncate max-w-[180px]">{course.title}</span>
                      </div>
                      <div className="text-right">
-                        <span className="text-lg font-black text-primary">{course.count}</span>
+                        <span className="text-lg font-black text-primary">{course.selectionCount}</span>
                         <p className="text-[10px] text-gray-500 font-bold uppercase">Students</p>
                      </div>
                    </div>

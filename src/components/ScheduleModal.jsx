@@ -1,144 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, Clock, Lock, Calendar, ClipboardList, Megaphone, GraduationCap, Mail, Phone, User, Download, ExternalLink, ChevronDown } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { X, Calendar, Info } from 'lucide-react';
 
-const ScheduleModal = ({ isOpen, onClose }) => {
-  const [showCalendarOptions, setShowCalendarOptions] = useState(false);
-
-  // Reference date: April 10, 2026
-  const today = new Date('2026-04-10');
-
-  const getPhaseStatus = (dateStr) => {
-    // Handle date ranges (e.g., "21-22 Apr 2026") by taking the start date
-    const simplifiedDate = dateStr.split('-')[0].trim();
-    const phaseDate = new Date(simplifiedDate);
-    
-    // Reset hours to compare only dates
-    today.setHours(0,0,0,0);
-    phaseDate.setHours(0,0,0,0);
-
-    if (phaseDate < today) return "COMPLETED";
-    if (phaseDate.getTime() === today.getTime()) return "ACTIVE";
-    return "UPCOMING";
-  };
-
-  const getStatusConfig = (status, originalColor, originalIcon) => {
-    if (status === "COMPLETED") return { color: "bg-green-500", icon: CheckCircle, theme: "bg-green-500/10 text-green-500 border-green-500/20" };
-    if (status === "ACTIVE") return { color: "bg-blue-500", icon: CheckCircle, theme: "bg-blue-500/10 text-blue-500 border-blue-500/20" };
-    return { color: originalColor, icon: Clock, theme: "bg-white/5 text-gray-400 border-white/10" };
-  };
-
-  const timelinePhases = [
-    { phase: 1, title: "Registration Open", date: "01 Apr 2026", origColor: "bg-green-500", origIcon: CheckCircle, description: "Student registration for elective selection portal opened" },
-    { phase: 2, title: "Selection Start", date: "10 Apr 2026", origColor: "bg-blue-500", origIcon: CheckCircle, description: "Open and Department elective selection window is now open" },
-    { phase: 3, title: "Selection Deadline", date: "19 Apr 2026", origColor: "bg-orange-500", origIcon: Clock, description: "Last date to select your electives. No changes after this date." },
-    { phase: 4, title: "Lock Date", date: "20 Apr 2026", origColor: "bg-red-500", origIcon: Lock, description: "All selections will be locked. No modifications allowed." },
-    { phase: 5, title: "Admin Review", date: "21 Apr 2026", origColor: "bg-gray-500", origIcon: ClipboardList, description: "Department coordinators review and verify all selections", displayDate: "21-22 Apr 2026" },
-    { phase: 6, title: "Results Announcement", date: "23 Apr 2026", origColor: "bg-purple-500", origIcon: Megaphone, description: "Final elective allocations announced. Check your dashboard for results." },
-    { phase: 7, title: "Classes Begin", date: "01 May 2026", origColor: "bg-blue-400", origIcon: GraduationCap, description: "Elective classes commence as per the announced timetable" }
-  ].map(p => {
-    const status = getPhaseStatus(p.date);
-    const config = getStatusConfig(status, p.origColor, p.origIcon);
-    return { ...p, status, ...config, isActive: status === "ACTIVE" };
-  });
-
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(30, 64, 175); // Primary Blue
-    doc.text("ElectiSelect - DSCE", 105, 20, { align: "center" });
-    
-    doc.setFontSize(16);
-    doc.setTextColor(100);
-    doc.text("Academic Schedule 2025-26", 105, 30, { align: "center" });
-
-    // Table Header
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.setFillColor(240, 240, 240);
-    doc.rect(10, 40, 190, 10, 'F');
-    doc.text("Phase", 15, 47);
-    doc.text("Event", 40, 47);
-    doc.text("Date", 130, 47);
-    doc.text("Status", 170, 47);
-
-    // Phases
-    let y = 57;
-    timelinePhases.forEach((p) => {
-      doc.setFontSize(10);
-      doc.text(p.phase.toString(), 15, y);
-      doc.text(p.title, 40, y);
-      doc.text(p.displayDate || p.date, 130, y);
-      doc.text(p.status, 170, y);
-      y += 10;
-    });
-
-    // Reminders Section
-    y += 10;
-    doc.setFontSize(14);
-    doc.setTextColor(30, 64, 175);
-    doc.text("Important Reminders", 15, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    const reminders = [
-      "- Confirmation email sent after selection",
-      "- SMS reminder 2 days before deadline",
-      "- No changes allowed after lock date",
-      "- Contact: electiselect@dsce.edu.in"
-    ];
-    reminders.forEach(r => {
-      doc.text(r, 20, y);
-      y += 6;
-    });
-
-    // Contact Info
-    y += 10;
-    doc.setFontSize(14);
-    doc.setTextColor(30, 64, 175);
-    doc.text("Contact Information", 15, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text("Academic Coordinator: Dr. Sharma | sharma@dsce.edu.in", 20, y);
-    y += 6;
-    doc.text("Admin Office: admin@dsce.edu.in | 080-XXXXXXXX", 20, y);
-    y += 6;
-    doc.text("Help Desk: Mon-Fri 9AM-5PM", 20, y);
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text("Generated by ElectiSelect Portal on " + new Date().toLocaleDateString(), 105, 285, { align: "center" });
-
-    doc.save("ElectiSelect_Academic_Schedule_2025-26.pdf");
-  };
-
+const ScheduleModal = ({ isOpen, onClose, sessionInfo }) => {
   if (!isOpen) return null;
+
+  const formatDate = (value) => (value ? new Date(value).toLocaleString() : '—');
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
           className="absolute inset-0 bg-black/60 backdrop-blur-md"
         />
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 30 }}
-          className="bg-gray-900 border border-white/10 w-full max-w-2xl max-h-[90vh] rounded-[32px] overflow-hidden shadow-2xl relative flex flex-col"
+          className="bg-gray-900 border border-white/10 w-full max-w-xl rounded-[32px] overflow-hidden shadow-2xl relative"
         >
-          {/* Header */}
           <div className="p-8 border-b border-white/5 relative bg-gradient-to-br from-gray-800 to-gray-900">
-            <button 
+            <button
               onClick={onClose}
               className="absolute top-6 right-6 p-2 h-10 w-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center transition-all text-gray-400 hover:text-white"
             >
@@ -149,152 +36,38 @@ const ScheduleModal = ({ isOpen, onClose }) => {
                 <Calendar size={24} />
               </div>
               <div>
-                <h2 className="text-2xl font-extrabold text-white tracking-tight">Complete Academic Schedule</h2>
-                <p className="text-gray-400 text-sm font-bold tracking-widest uppercase mt-1">ElectiSelect 2025-26 Timeline</p>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">Session Schedule</h2>
+                <p className="text-gray-400 text-sm font-bold tracking-widest uppercase mt-1">
+                  {sessionInfo?.sessionType ? `${sessionInfo.sessionType} Session` : 'SESSION SCHEDULE'}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-            {/* Timeline Section */}
-            <div className="mb-12">
-              <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-8 flex items-center">
-                <div className="w-8 h-px bg-white/10 mr-4"></div>
-                Selection Schedule
-              </h3>
-              
-              <div className="relative pl-10">
-                {/* Connecting Line */}
-                <div className="absolute left-[2.45rem] top-2 bottom-2 w-0.5 bg-gradient-to-b from-green-500 via-blue-500 to-white/5"></div>
-                
-                <div className="space-y-10">
-                  {timelinePhases.map((phase, idx) => (
-                    <motion.div 
-                      key={idx}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="relative"
-                    >
-                      {/* Step Indicator */}
-                      <div className={`absolute -left-[1.85rem] top-1 w-6 h-6 rounded-full border-4 border-gray-900 z-10 flex items-center justify-center ${phase.color} shadow-[0_0_15px_rgba(0,0,0,0.5)]`}>
-                        {phase.status === "COMPLETED" && <CheckCircle size={10} className="text-white" />}
-                        {phase.isActive && (
-                          <span className="absolute inset-0 rounded-full animate-ping opacity-75 bg-blue-500"></span>
-                        )}
-                        {phase.isActive && <div className="w-2 h-2 rounded-full bg-white"></div>}
-                        {!phase.isActive && phase.status !== "COMPLETED" && <div className="w-1.5 h-1.5 rounded-full bg-white/40"></div>}
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Phase {phase.phase}</span>
-                           <h4 className="text-lg font-black text-white leading-none">{phase.title}</h4>
-                        </div>
-                        <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${phase.theme}`}>
-                          <phase.icon size={10} />
-                          {phase.status}
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs font-black text-primary tracking-widest mb-2">{phase.displayDate || phase.date}</p>
-                      <p className="text-sm text-gray-400 font-medium leading-relaxed">{phase.description}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+          <div className="p-8 space-y-4 text-white">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <span className="text-xs font-bold text-gray-400">Academic Year</span>
+              <span className="text-xs font-black tracking-tight">{sessionInfo?.academicYear || '—'}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <span className="text-xs font-bold text-gray-400">Selection Window Opens</span>
+              <span className="text-xs font-black tracking-tight">{formatDate(sessionInfo?.startTime)}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <span className="text-xs font-bold text-gray-400">Selection Window Closes</span>
+              <span className="text-xs font-black tracking-tight">{formatDate(sessionInfo?.endTime)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-400">Status</span>
+              <span className="text-xs font-black tracking-tight">{sessionInfo?.status || '—'}</span>
             </div>
 
-            {/* Grid for Reminders and Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5 text-white">
-               {/* Reminders */}
-               <div>
-                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5">Important Reminders</h3>
-                  <div className="space-y-4">
-                    {[
-                      { icon: Mail, text: "Confirmation email sent after selection" },
-                      { icon: Phone, text: "SMS reminder 2 days before deadline" },
-                      { icon: Lock, text: "No changes allowed after lock date" },
-                      { icon: Mail, text: "Contact: electiselect@dsce.edu.in" }
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 scroll-m-2">
-                        <item.icon size={14} className="text-primary shrink-0" />
-                        <span className="text-xs font-bold text-gray-300">{item.text}</span>
-                      </div>
-                    ))}
-                  </div>
-               </div>
-
-               {/* Contact Info */}
-               <div>
-                  <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5">Support Contact</h3>
-                  <div className="space-y-4">
-                     <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                        <div className="flex items-center gap-3 mb-2">
-                           <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary"><User size={16} /></div>
-                           <div>
-                             <p className="text-xs font-black">Dr. Sharma</p>
-                             <p className="text-[10px] text-gray-400">Academic Coordinator</p>
-                           </div>
-                        </div>
-                        <p className="text-[10px] font-bold text-primary flex items-center gap-2"><Mail size={10} /> sharma@dsce.edu.in</p>
-                     </div>
-                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col gap-1">
-                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Admin Office</p>
-                           <p className="text-[10px] font-bold">080-XXXXXXXX</p>
-                        </div>
-                        <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col gap-1">
-                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Help Desk</p>
-                           <p className="text-[10px] font-bold">Mon-Fri 9AM-5PM</p>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+            <div className="mt-6 p-3 bg-white/5 rounded-xl flex items-start border border-white/10">
+              <Info className="w-4 h-4 text-primary mr-3 flex-shrink-0 mt-0.5" />
+              <p className="text-[10px] font-bold text-gray-400 leading-relaxed italic">
+                Selection visibility is based on session availability and your eligibility.
+              </p>
             </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-8 bg-gray-950/50 border-t border-white/5 flex flex-col sm:flex-row gap-4">
-             <button 
-                onClick={handleDownloadPDF}
-                className="flex-1 bg-primary hover:bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
-             >
-                <Download size={16} /> Download Schedule PDF
-             </button>
-             
-             <div className="relative flex-1">
-               <button 
-                  onClick={() => setShowCalendarOptions(!showCalendarOptions)}
-                  className="w-full bg-transparent hover:bg-white/5 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2 border-white/10"
-               >
-                  <Calendar size={16} /> Add to Calendar <ChevronDown size={14} className={`transition-transform ${showCalendarOptions ? 'rotate-180' : ''}`} />
-               </button>
-               
-               <AnimatePresence>
-                 {showCalendarOptions && (
-                   <motion.div 
-                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                     className="absolute bottom-full left-0 right-0 mb-4 bg-gray-800 border border-white/10 rounded-2xl shadow-2xl p-2 z-[110] overflow-hidden"
-                   >
-                     {["Google Calendar", "Apple Calendar", "Download .ics file"].map((opt) => (
-                       <button key={opt} className="w-full p-4 text-left text-xs font-bold text-gray-300 hover:bg-white/5 hover:text-white rounded-xl transition-all flex items-center justify-between group">
-                         {opt} <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                       </button>
-                     ))}
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-             </div>
-
-             <button 
-               onClick={onClose}
-               className="sm:w-32 bg-gray-800 hover:bg-gray-700 text-gray-400 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-             >
-               Close
-             </button>
           </div>
         </motion.div>
       </div>

@@ -48,7 +48,7 @@ const Register = () => {
     dob: '',
     phone: '',
     college: 'Dayananda Sagar College of Engineering',
-    role: 'student',
+    role: 'STUDENT',
     department: '',
     semester: '',
     admissionYear: '2024',
@@ -125,7 +125,7 @@ const Register = () => {
     } else if (s === 2) {
       if (!formData.college) newErrors.college = "College is required";
       if (!formData.department) newErrors.department = "Department is required";
-      if (formData.role === 'student' && !formData.semester) newErrors.semester = "Semester is required";
+      if (formData.role === 'STUDENT' && !formData.semester) newErrors.semester = "Semester is required";
       if (!formData.admissionYear) newErrors.admissionYear = "Admission Year is required";
       if (!formData.rollNo) newErrors.rollNo = "Roll Number is required";
     } else if (s === 3) {
@@ -167,7 +167,7 @@ const Register = () => {
         password: formData.password,
         role: formData.role,
         department: formData.department,
-        semester: formData.role === 'student' ? parseInt(formData.semester) : undefined,
+        semester: formData.role === 'STUDENT' ? parseInt(formData.semester) : undefined,
         gender: formData.gender,
         phone: formData.phone,
         admissionYear: formData.admissionYear,
@@ -494,7 +494,7 @@ const Register = () => {
                 </div>
                 <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100 mb-4">
                    <div className="flex items-center"><GraduationCap size={20} className="text-primary mr-3" /><div><p className="text-xs font-bold text-primary uppercase tracking-wider">Are you a Student?</p><p className="text-[11px] text-gray-500">Toggle for Student/Staff</p></div></div>
-                   <button type="button" onClick={() => setFormData({...formData, role: formData.role === 'student' ? 'staff' : 'student'})} className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.role === 'student' ? 'bg-primary' : 'bg-gray-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${formData.role === 'student' ? 'left-7' : 'left-1'}`}></div></button>
+                   <button type="button" onClick={() => setFormData({...formData, role: formData.role === 'STUDENT' ? 'ISE_ADMIN' : 'STUDENT'})} className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.role === 'STUDENT' ? 'bg-primary' : 'bg-gray-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${formData.role === 'STUDENT' ? 'left-7' : 'left-1'}`}></div></button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -506,7 +506,7 @@ const Register = () => {
                   </div>
                   <div>
                     <label className="block text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-2">Semester</label>
-                    <select disabled={formData.role !== 'student'} value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})} className={`w-full p-3.5 bg-gray-50 border rounded-2xl focus:bg-white outline-none text-sm font-medium ${formData.role !== 'student' ? 'opacity-50' : 'border-gray-200 focus:border-primary'}`}>
+                    <select disabled={formData.role !== 'STUDENT'} value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})} className={`w-full p-3.5 bg-gray-50 border rounded-2xl focus:bg-white outline-none text-sm font-medium ${formData.role !== 'STUDENT' ? 'opacity-50' : 'border-gray-200 focus:border-primary'}`}>
                       <option value="">Select Sem</option>
                       {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
                     </select>

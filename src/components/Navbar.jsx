@@ -134,7 +134,7 @@ const Navbar = ({ user: propUser }) => {
             <div className={`${isRTL ? 'text-left ml-3' : 'text-right mr-3'} hidden sm:block`}>
               <p className="text-sm font-bold text-gray-900">{user?.name || 'Student'}</p>
               <p className="text-xs text-secondary font-medium tracking-wide uppercase">
-                {user?.role === 'student' ? (user?.usn || user?.USN || 'N/A') : (user?.staffId || user?.adminId || 'ID N/A')}
+                {user?.role === 'STUDENT' ? (user?.usn || user?.USN || 'N/A') : (user?.staffId || user?.adminId || 'ID N/A')}
               </p>
             </div>
 
@@ -155,7 +155,7 @@ const Navbar = ({ user: propUser }) => {
                       {user.role}
                     </span>
 
-                    {user?.role === 'student' && (
+                    {user?.role === 'STUDENT' && (
                       <div className="flex flex-col items-center text-[12.5px] text-gray-600 font-semibold">
                         <p>{user?.department || 'N/A'} • Semester {user?.semester || 'N/A'}</p>
                         <p className="mt-1 text-gray-800">{user?.usn || user?.USN || 'N/A'}</p>

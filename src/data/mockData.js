@@ -1,8 +1,8 @@
 export const mockUsers = {
-  student: {
+  STUDENT: {
     name: "John Student",
     email: "student@dsce.edu.in",
-    role: "student",
+    role: "STUDENT",
     department: "ISE",
     semester: 4,
     gender: "Male",
@@ -10,10 +10,10 @@ export const mockUsers = {
     rollNo: "001",
     USN: "1DS22IS001"
   },
-  staff: {
+  ISE_ADMIN: {
     name: "Prof. Sharma",
-    email: "sharma@dsce.edu.in",
-    role: "staff",
+    email: "staff@dsce.edu.in",
+    role: "ISE_ADMIN",
     department: "ISE",
     gender: "Female",
     staffId: "ST001"
@@ -21,7 +21,7 @@ export const mockUsers = {
   admin: {
     name: "Admin",
     email: "admin@dsce.edu.in",
-    role: "superadmin",
+    role: "SUPER_ADMIN",
     gender: "Other",
     adminId: "SA001"
   }

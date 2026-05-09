@@ -11,34 +11,35 @@ const Dashboard = () => {
 
   const [openSessionActive, setOpenSessionActive] = useState(false);
   const [deptSessionActive, setDeptSessionActive] = useState(false);
+  const [openSubmitted, setOpenSubmitted] = useState(false);
+  const [deptSubmitted, setDeptSubmitted] = useState(false);
+
+  const [openEndTime, setOpenEndTime] = useState(null);
+  const [deptEndTime, setDeptEndTime] = useState(null);
+  const [semester, setSemester] = useState(null);
 
   useEffect(() => {
-    // Fetch profile to get per-type session status.
-    // AuthContext only stores identity (/api/user/me), not session state.
     api.getProfile()
-      .then(profile => {
-        const now = new Date();
+      .then(res => setSemester(res?.academicState?.currentSemester))
+      .catch(() => {});
 
-        const openSess = profile?.openSession;
-        setOpenSessionActive(
-          openSess?.active === true &&
-          !!openSess?.startTime && !!openSess?.endTime &&
-          now >= new Date(openSess.startTime) &&
-          now <= new Date(openSess.endTime)
-        );
-
-        const deptSess = profile?.deptSession;
-        setDeptSessionActive(
-          deptSess?.active === true &&
-          !!deptSess?.startTime && !!deptSess?.endTime &&
-          now >= new Date(deptSess.startTime) &&
-          now <= new Date(deptSess.endTime)
-        );
+    Promise.all([
+      api.getOpenStatus(),
+      api.getDeptStatus()
+    ])
+      .then(([openStatus, deptStatus]) => {
+        setOpenSessionActive(openStatus?.visible === true);
+        setDeptSessionActive(deptStatus?.visible === true);
+        setOpenSubmitted(openStatus?.submitted === true);
+        setDeptSubmitted(deptStatus?.submitted === true);
+        setOpenEndTime(openStatus?.endTime || null);
+        setDeptEndTime(deptStatus?.endTime || null);
       })
       .catch(() => {
-        // Profile fetch failed — sessions remain inactive (safe default)
         setOpenSessionActive(false);
         setDeptSessionActive(false);
+        setOpenSubmitted(false);
+        setDeptSubmitted(false);
       });
   }, []);
 
@@ -51,25 +52,33 @@ const Dashboard = () => {
   // AuthContext user comes from /api/user/me which returns flat fields
   const name = user?.name;
   const dept = user?.department;
-  const sem  = user?.semester;
+  const sem  = semester || user?.semester;
   const role = user?.role;
 
   const getEmoji = () => '👋';
 
-  const deadline = new Date();
-  deadline.setDate(deadline.getDate() + 10);
-  const deadlineStr = deadline.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  }).toUpperCase();
+  let activeEndTime = null;
+  if (openSessionActive && openEndTime) activeEndTime = new Date(openEndTime);
+  if (deptSessionActive && deptEndTime) {
+    const dTime = new Date(deptEndTime);
+    if (!activeEndTime || dTime < activeEndTime) {
+      activeEndTime = dTime; // show closest deadline
+    }
+  }
+
+  const deadlineStr = activeEndTime 
+    ? activeEndTime.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }).toUpperCase()
+    : 'NO ACTIVE DEADLINE';
 
   console.log("Dashboard user:", user);
 
   // Dynamic elective states based on user.selections
-  const openSelected = user?.selections?.openElective || null;
-  const deptTheory = user?.selections?.deptTheory || null;
-  const deptLab = user?.selections?.deptLab || null;
+  const openSelected = openSubmitted ? 'SELECTED' : null;
+  const deptSelected = deptSubmitted;
 
   if (loading || !user) {
      return <div className="flex h-screen bg-gray-50 items-center justify-center">Loading...</div>;
@@ -122,7 +131,7 @@ const Dashboard = () => {
                 {openSelected ? (
                   <div className="text-[13px] text-green-600 font-black flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-                    {typeof openSelected === 'object' ? openSelected.title : openSelected}
+                    {openSelected}
                   </div>
                 ) : (
                   <div className="text-[13px] text-orange-500 font-black flex items-center gap-2">
@@ -157,7 +166,7 @@ const Dashboard = () => {
               </p>
 
               <div className="mb-6 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                {deptTheory && deptLab ? (
+                {deptSelected ? (
                   <div className="text-[13px] text-green-600 font-black flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
                     SELECTED

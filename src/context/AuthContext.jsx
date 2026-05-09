@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       api.getMe()
         .then(me => {
           setAuthError(null);
-          setUser({ ...me, role: me.role ? me.role.toLowerCase() : 'student' });
+          setUser({ ...me, role: me.role ? me.role.toUpperCase() : 'STUDENT' });
           setIsLoggedIn(true);
 
           // 4. Navigate ONLY ONCE
@@ -205,9 +205,9 @@ export const AuthProvider = ({ children }) => {
     resetTimers();
 
     setTimeout(() => {
-      if (updatedUser.role === 'student') navigate('/dashboard');
-      else if (updatedUser.role === 'staff') navigate('/open-elective/admin');
-      else if (updatedUser.role === 'superadmin') navigate('/super-admin');
+      if (updatedUser.role === 'STUDENT') navigate('/dashboard');
+      else if (updatedUser.role === 'ISE_ADMIN') navigate('/open-elective/admin');
+      else if (updatedUser.role === 'SUPER_ADMIN') navigate('/super-admin');
     }, 0);
   };
 
