@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Database, Plus, CheckCircle2, XCircle, Clock, Calendar, AlertCircle, X, Upload, FileSpreadsheet } from 'lucide-react';
+import { Database, Plus, CheckCircle2, XCircle, Clock, Calendar, AlertCircle, X, Upload, FileSpreadsheet, Users, Search } from 'lucide-react';
 
 const SystemAdmin = () => {
   const { user } = useAuth();
@@ -35,6 +35,46 @@ const SystemAdmin = () => {
   const [uploadError, setUploadError] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Student Management State
+  const [students, setStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState(null);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentDepartment, setStudentDepartment] = useState('');
+  const [studentSemester, setStudentSemester] = useState('');
+  const [studentEligible, setStudentEligible] = useState('');
+
+  const fetchStudents = async (overrides = {}) => {
+    setStudentsLoading(true);
+    setStudentsError(null);
+    try {
+      const data = await api.getAdminStudents({
+        search: overrides.search ?? studentSearch,
+        department: overrides.department ?? studentDepartment,
+        semester: overrides.semester ?? studentSemester,
+        eligible: overrides.eligible ?? studentEligible,
+      });
+      setStudents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load students:', err);
+      setStudentsError('Failed to load students.');
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
+  const toggleEligibility = async (studentId) => {
+    try {
+      await api.toggleStudentEligibility(studentId);
+      // After toggle, refetch entire list to ensure backend truth is authoritative
+      await fetchStudents();
+      showSuccess('Eligibility updated');
+    } catch (err) {
+      console.error('Failed to toggle eligibility:', err);
+      setStudentsError(err.response?.data?.error || 'Failed to update eligibility.');
+    }
+  };
+
   const fetchSessions = async () => {
     setLoading(true);
     try {
@@ -51,6 +91,11 @@ const SystemAdmin = () => {
 
   useEffect(() => {
     fetchSessions();
+  }, []);
+
+  useEffect(() => {
+    fetchStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showSuccess = (msg) => {
@@ -168,6 +213,162 @@ const SystemAdmin = () => {
             <p className="font-medium text-sm">{successMessage}</p>
           </div>
         )}
+
+        {/* Student Management */}
+        <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between gap-4 flex-wrap">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Student Management
+            </h2>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') fetchStudents({ search: e.currentTarget.value });
+                  }}
+                  placeholder="Search name / USN / email"
+                  className="pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                />
+              </div>
+              <select
+                value={studentDepartment}
+                onChange={(e) => {
+                  setStudentDepartment(e.target.value);
+                  fetchStudents({ department: e.target.value });
+                }}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold bg-white"
+              >
+                <option value="">All Depts</option>
+                <option value="CSE">CSE</option>
+                <option value="ISE">ISE</option>
+                <option value="ECE">ECE</option>
+                <option value="EEE">EEE</option>
+                <option value="ME">ME</option>
+                <option value="CV">CV</option>
+              </select>
+              <select
+                value={studentSemester}
+                onChange={(e) => {
+                  setStudentSemester(e.target.value);
+                  fetchStudents({ semester: e.target.value });
+                }}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold bg-white"
+              >
+                <option value="">All Sem</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                  <option key={s} value={s}>Sem {s}</option>
+                ))}
+              </select>
+              <select
+                value={studentEligible}
+                onChange={(e) => {
+                  setStudentEligible(e.target.value);
+                  fetchStudents({ eligible: e.target.value });
+                }}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold bg-white"
+              >
+                <option value="">All</option>
+                <option value="true">Eligible</option>
+                <option value="false">Ineligible</option>
+              </select>
+              <button
+                onClick={() => fetchStudents()}
+                className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {studentsError && (
+            <div className="p-4 bg-red-50 text-red-700 text-sm font-semibold border-b border-red-100">
+              {studentsError}
+            </div>
+          )}
+
+          {studentsLoading ? (
+            <div className="p-8 text-center text-gray-500 font-medium">Loading students...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">USN</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Dept</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Sem</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Eligible</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Open</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Dept</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {students.map((s) => (
+                    <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="p-4 font-semibold text-gray-900">{s.name || '—'}</td>
+                      <td className="p-4 text-gray-700 font-medium">{s.usn || '—'}</td>
+                      <td className="p-4 text-gray-700 font-medium">{s.email || '—'}</td>
+                      <td className="p-4 text-gray-700 font-semibold">{s.department || '—'}</td>
+                      <td className="p-4 text-gray-700 font-semibold">
+                        {s.semester === null || s.semester === undefined || s.semester === 0 ? '—' : s.semester}
+                      </td>
+                      <td className="p-4">
+                        {s.eligible ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            ELIGIBLE
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            INELIGIBLE
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {s.openElectiveSubmitted ? (
+                          <span className="text-xs font-black text-green-700">YES</span>
+                        ) : (
+                          <span className="text-xs font-black text-gray-400">NO</span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {s.deptElectiveSubmitted ? (
+                          <span className="text-xs font-black text-green-700">YES</span>
+                        ) : (
+                          <span className="text-xs font-black text-gray-400">NO</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => toggleEligibility(s.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-colors shadow-sm border ${
+                            s.eligible
+                              ? 'bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300'
+                              : 'bg-white border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300'
+                          }`}
+                        >
+                          {s.eligible ? 'Disable' : 'Enable'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {!studentsLoading && students.length === 0 && (
+                <div className="p-10 text-center text-gray-500 font-medium">No students found.</div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100 bg-gray-50/50">

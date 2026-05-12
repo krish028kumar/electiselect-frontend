@@ -46,6 +46,19 @@ api.getAdminDashboardStudents = () => api.get("/admin/dashboard/students");
 api.getAdminDashboardSessions = () => api.get("/admin/dashboard/sessions");
 api.getPopularElectives = (limit = 5) => api.get(`/admin/dashboard/popular-electives?limit=${limit}`);
 
+// Student Management (System Admin)
+api.getAdminStudents = ({ search, department, semester, eligible } = {}) =>
+  api.get("/admin/students", {
+    params: {
+      ...(search ? { search } : {}),
+      ...(department ? { department } : {}),
+      ...(semester !== undefined && semester !== null && semester !== "" ? { semester } : {}),
+      ...(eligible !== undefined && eligible !== null && eligible !== "" ? { eligible } : {}),
+    },
+  });
+
+api.toggleStudentEligibility = (studentId) => api.patch(`/admin/students/${studentId}/eligibility`);
+
 // Admin Session Management
 api.getAllSessions = () => api.get("/admin/sessions");
 api.createSession = (data) => api.post("/admin/sessions", data);
