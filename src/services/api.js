@@ -59,6 +59,9 @@ api.getAdminStudents = ({ search, department, semester, eligible } = {}) =>
 
 api.toggleStudentEligibility = (studentId) => api.patch(`/admin/students/${studentId}/eligibility`);
 
+api.promoteStudent = (studentId) => api.patch(`/admin/students/${studentId}/promote`);
+api.promoteStudentsBulk = (semester) => api.patch(`/admin/students/promote-bulk?semester=${semester}`);
+
 // Admin Session Management
 api.getAllSessions = () => api.get("/admin/sessions");
 api.createSession = (data) => api.post("/admin/sessions", data);

@@ -43,6 +43,8 @@ const SystemAdmin = () => {
   const [studentDepartment, setStudentDepartment] = useState('');
   const [studentSemester, setStudentSemester] = useState('');
   const [studentEligible, setStudentEligible] = useState('');
+  const [bulkSemester, setBulkSemester] = useState('');
+  const [bulkPromotionResult, setBulkPromotionResult] = useState(null);
 
   const fetchStudents = async (overrides = {}) => {
     setStudentsLoading(true);
@@ -72,6 +74,33 @@ const SystemAdmin = () => {
     } catch (err) {
       console.error('Failed to toggle eligibility:', err);
       setStudentsError(err.response?.data?.error || 'Failed to update eligibility.');
+    }
+  };
+
+  const promoteStudent = async (studentId) => {
+    try {
+      await api.promoteStudent(studentId);
+      await fetchStudents();
+      showSuccess('Student promoted');
+    } catch (err) {
+      console.error('Failed to promote student:', err);
+      setStudentsError(err.response?.data?.error || 'Failed to promote student.');
+    }
+  };
+
+  const promoteBulk = async () => {
+    if (!bulkSemester) {
+      setStudentsError('Please select a semester for bulk promotion.');
+      return;
+    }
+    try {
+      const result = await api.promoteStudentsBulk(bulkSemester);
+      setBulkPromotionResult(result);
+      await fetchStudents();
+      showSuccess('Bulk promotion completed');
+    } catch (err) {
+      console.error('Failed to promote students:', err);
+      setStudentsError(err.response?.data?.error || 'Failed to promote students.');
     }
   };
 
@@ -285,6 +314,31 @@ const SystemAdmin = () => {
             </div>
           </div>
 
+          <div className="px-6 py-4 border-b border-gray-100 bg-white flex flex-wrap items-center gap-3">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bulk Promotion</span>
+            <select
+              value={bulkSemester}
+              onChange={(e) => setBulkSemester(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold bg-white"
+            >
+              <option value="">Select semester</option>
+              {[1, 2, 3, 4, 5, 6, 7].map((s) => (
+                <option key={s} value={s}>Semester {s} → {s + 1}</option>
+              ))}
+            </select>
+            <button
+              onClick={promoteBulk}
+              className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors"
+            >
+              Promote Semester
+            </button>
+            {bulkPromotionResult && (
+              <span className="text-xs font-semibold text-gray-600">
+                Promoted: {bulkPromotionResult.promotedCount}, Skipped: {bulkPromotionResult.skippedCount}
+              </span>
+            )}
+          </div>
+
           {studentsError && (
             <div className="p-4 bg-red-50 text-red-700 text-sm font-semibold border-b border-red-100">
               {studentsError}
@@ -306,7 +360,7 @@ const SystemAdmin = () => {
                     <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Eligible</th>
                     <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Open</th>
                     <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Dept</th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -347,16 +401,24 @@ const SystemAdmin = () => {
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => toggleEligibility(s.id)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-colors shadow-sm border ${
-                            s.eligible
-                              ? 'bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300'
-                              : 'bg-white border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300'
-                          }`}
-                        >
-                          {s.eligible ? 'Disable' : 'Enable'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => promoteStudent(s.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-colors shadow-sm border border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                          >
+                            Promote
+                          </button>
+                          <button
+                            onClick={() => toggleEligibility(s.id)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-colors shadow-sm border ${
+                              s.eligible
+                                ? 'bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300'
+                                : 'bg-white border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300'
+                            }`}
+                          >
+                            {s.eligible ? 'Disable' : 'Enable'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
