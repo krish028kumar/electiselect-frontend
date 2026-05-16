@@ -8,7 +8,8 @@ import DeptElective from './pages/DeptElective'
 import DeptElectiveAdmin from './pages/DeptElectiveAdmin'
 import SuperAdmin from './pages/SuperAdmin'
 import SystemAdmin from './pages/SystemAdmin'
-import SuperAdminPlaceholder from './pages/SuperAdminPlaceholder'
+import SuperAdminStudents from './pages/SuperAdminStudents'
+import SuperAdminSettings from './pages/SuperAdminSettings'
 import Notifications from './pages/Notifications'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
@@ -42,8 +43,8 @@ function App() {
           <Route path="/dept-elective/admin" element={<ProtectedRoute allowedRoles={['ISE_ADMIN', 'SUPER_ADMIN']}><DeptElectiveAdmin /></ProtectedRoute>} />
           
           <Route path="/super-admin" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdmin /></ProtectedRoute>} />
-          <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminPlaceholder title="Settings" /></ProtectedRoute>} />
-          <Route path="/super-admin/students" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminPlaceholder title="Student Management" /></ProtectedRoute>} />
+          <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminSettings /></ProtectedRoute>} />
+          <Route path="/super-admin/students" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminStudents /></ProtectedRoute>} />
           <Route path="/super-admin/system" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SystemAdmin /></ProtectedRoute>} />
           
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

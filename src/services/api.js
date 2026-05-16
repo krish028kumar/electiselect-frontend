@@ -45,6 +45,7 @@ api.getAdminDashboardStats = () => api.get("/admin/dashboard/stats");
 api.getAdminDashboardStudents = () => api.get("/admin/dashboard/students");
 api.getAdminDashboardSessions = () => api.get("/admin/dashboard/sessions");
 api.getPopularElectives = (limit = 5) => api.get(`/admin/dashboard/popular-electives?limit=${limit}`);
+api.getAdminAnalytics = (limit = 5) => api.get(`/admin/analytics?limit=${limit}`);
 
 // Student Management (System Admin)
 api.getAdminStudents = ({ search, department, semester, eligible } = {}) =>
@@ -74,5 +75,16 @@ api.uploadSubjects = (sessionId, file) => {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
 };
+
+api.importStudents = (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post('/admin/students/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
+
+api.exportStudentsCsv = () => api.get('/admin/students/export', { responseType: 'blob' });
+
 
 export default api;
