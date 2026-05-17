@@ -45,7 +45,16 @@ api.getAdminDashboardStats = () => api.get("/admin/dashboard/stats");
 api.getAdminDashboardStudents = () => api.get("/admin/dashboard/students");
 api.getAdminDashboardSessions = () => api.get("/admin/dashboard/sessions");
 api.getPopularElectives = (limit = 5) => api.get(`/admin/dashboard/popular-electives?limit=${limit}`);
-api.getAdminAnalytics = (limit = 5) => api.get(`/admin/analytics?limit=${limit}`);
+api.getAdminAnalytics = ({ limit = 5, sessionId, type, semester, academicYear } = {}) => 
+  api.get("/admin/analytics", {
+    params: {
+      limit,
+      ...(sessionId ? { sessionId } : {}),
+      ...(type ? { type } : {}),
+      ...(semester ? { semester } : {}),
+      ...(academicYear ? { academicYear } : {})
+    }
+  });
 
 // Student Management (System Admin)
 api.getAdminStudents = ({ search, department, semester, eligible } = {}) =>
@@ -86,5 +95,18 @@ api.importStudents = (file) => {
 
 api.exportStudentsCsv = () => api.get('/admin/students/export', { responseType: 'blob' });
 
+// Smart Subject Upload (preview + confirm workflow)
+api.previewSubjectUpload = (sessionId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('sessionId', sessionId);
+  return api.post('/admin/subjects/upload/preview', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    params: { sessionId },
+  });
+};
+
+api.confirmSubjectUpload = (sessionId, subjects) =>
+  api.post('/admin/subjects/upload/confirm', { sessionId, subjects });
 
 export default api;
