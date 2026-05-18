@@ -19,6 +19,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     // If user has a token but wrong role, send them to their respective dashboard
     if (user.role === 'SUPER_ADMIN') return <Navigate to="/super-admin" replace />;
     if (user.role === 'ISE_ADMIN') return <Navigate to="/open-elective/admin" replace />;
+    if (user.role === 'STAFF') return <Navigate to="/staff" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 

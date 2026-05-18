@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }) => {
           if (currentPath.startsWith('/login-success') || currentPath === '/login') {
             const role = me.role?.toUpperCase();
             if (role === 'SUPER_ADMIN') navigate('/super-admin', { replace: true });
+            else if (role === 'STAFF') navigate('/staff', { replace: true });
             else navigate('/dashboard', { replace: true });
           }
         })
@@ -208,6 +209,7 @@ export const AuthProvider = ({ children }) => {
       if (updatedUser.role === 'STUDENT') navigate('/dashboard');
       else if (updatedUser.role === 'ISE_ADMIN') navigate('/open-elective/admin');
       else if (updatedUser.role === 'SUPER_ADMIN') navigate('/super-admin');
+      else if (updatedUser.role === 'STAFF') navigate('/staff');
     }, 0);
   };
 

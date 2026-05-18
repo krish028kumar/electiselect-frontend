@@ -15,6 +15,7 @@ import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import CompleteProfile from './pages/CompleteProfile'
+import StaffDashboard from './pages/StaffDashboard'
 
 const FallbackRoute = () => {
   const pathname = window.location.pathname;
@@ -46,6 +47,8 @@ function App() {
           <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminSettings /></ProtectedRoute>} />
           <Route path="/super-admin/students" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminStudents /></ProtectedRoute>} />
           <Route path="/super-admin/system" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SystemAdmin /></ProtectedRoute>} />
+          
+          <Route path="/staff" element={<ProtectedRoute allowedRoles={['STAFF', 'ISE_ADMIN', 'SUPER_ADMIN']}><StaffDashboard /></ProtectedRoute>} />
           
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           

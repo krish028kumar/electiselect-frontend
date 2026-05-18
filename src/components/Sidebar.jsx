@@ -45,6 +45,11 @@ const Sidebar = ({ active, role: propRole, user: propUser }) => {
         { name: 'System', icon: Database, path: '/super-admin/system' },
       ];
     }
+    if (user?.role === 'STAFF') {
+      return [
+        { name: 'Monitor', icon: LayoutDashboard, path: '/staff' },
+      ];
+    }
     return [];
   };
 

@@ -109,4 +109,41 @@ api.previewSubjectUpload = (sessionId, file) => {
 api.confirmSubjectUpload = (sessionId, subjects) =>
   api.post('/admin/subjects/upload/confirm', { sessionId, subjects });
 
+// STAFF Monitoring APIs
+api.getStaffSessions = () => api.get('/staff/sessions');
+api.getStaffAnalytics = ({ limit = 5, type, semester, academicYear, sessionId } = {}) =>
+  api.get('/staff/analytics', {
+    params: {
+      limit,
+      ...(type ? { type } : {}),
+      ...(semester ? { semester } : {}),
+      ...(academicYear ? { academicYear } : {}),
+      ...(sessionId ? { sessionId } : {}),
+    }
+  });
+
+api.exportStaffOpenRegistrations = (sessionId) =>
+  api.get('/staff/export/registrations/open', {
+    params: { sessionId },
+    responseType: 'blob',
+  });
+
+api.exportStaffDeptRegistrations = (sessionId) =>
+  api.get('/staff/export/registrations/dept', {
+    params: { sessionId },
+    responseType: 'blob',
+  });
+
+api.exportStaffOpenRegistrationsCsv = (sessionId) =>
+  api.get('/staff/export/registrations/open/csv', {
+    params: { sessionId },
+    responseType: 'blob',
+  });
+
+api.exportStaffDeptRegistrationsCsv = (sessionId) =>
+  api.get('/staff/export/registrations/dept/csv', {
+    params: { sessionId },
+    responseType: 'blob',
+  });
+
 export default api;

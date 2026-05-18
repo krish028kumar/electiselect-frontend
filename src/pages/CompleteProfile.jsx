@@ -8,7 +8,7 @@ const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const [me, setMe] = useState(null);
-  const [form, setForm] = useState({ name: '', phone: '', department: '', semester: '' });
+  const [form, setForm] = useState({ name: '', phone: '', department: '', semester: '', usn: '' });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -33,7 +33,7 @@ const CompleteProfile = () => {
 
   const isValid = () => {
     if (!form.name.trim() || !form.phone.trim() || !form.department) return false;
-    if (role === 'STUDENT' && !form.semester) return false;
+    if (role === 'STUDENT' && (!form.semester || !form.usn.trim())) return false;
     return true;
   };
 
@@ -48,6 +48,7 @@ const CompleteProfile = () => {
         phone: form.phone.trim(),
         department: form.department,
         semester: role === 'STUDENT' ? parseInt(form.semester) : null,
+        usn: role === 'STUDENT' ? form.usn.trim() : null,
       });
       // Re-fetch me to update context state and redirect
       const updated = await api.getMe();
@@ -128,22 +129,36 @@ const CompleteProfile = () => {
             </select>
           </div>
 
-          {/* Semester — only for STUDENT */}
+          {/* Semester and USN — only for STUDENT */}
           {role === 'STUDENT' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Current Semester</label>
-              <select
-                value={form.semester}
-                onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
-                required
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 transition-all appearance-none"
-              >
-                <option value="">Select Semester</option>
-                {SEMESTERS.map(s => (
-                  <option key={s} value={s}>Semester {s}</option>
-                ))}
-              </select>
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Current Semester</label>
+                <select
+                  value={form.semester}
+                  onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 transition-all appearance-none"
+                >
+                  <option value="">Select Semester</option>
+                  {SEMESTERS.map(s => (
+                    <option key={s} value={s}>Semester {s}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">USN</label>
+                <input
+                  type="text"
+                  value={form.usn}
+                  onChange={e => setForm(f => ({ ...f, usn: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. 1DS24IS110"
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 transition-all"
+                />
+              </div>
+            </>
           )}
 
           {/* Error */}
