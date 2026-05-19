@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { AlertCircle, BarChart3, TrendingUp, Filter, Database, Download, Calendar, Clock } from 'lucide-react';
+import { AnalyticsCharts } from '../components/AnalyticsCharts';
 
 const StaffDashboard = () => {
   const { user } = useAuth();
@@ -54,7 +55,7 @@ const StaffDashboard = () => {
     setAnalyticsLoading(true);
     try {
       const data = await api.getStaffAnalytics({
-        limit: 5,
+        limit: 1000,
         type: filterType || undefined,
         semester: filterSemester || undefined,
         academicYear: filterAcademicYear || undefined,
@@ -344,81 +345,8 @@ const StaffDashboard = () => {
                   )}
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="p-4 rounded-xl border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-900 mb-3">Semester Distribution</h3>
-                    <div className="space-y-2">
-                      {(analytics?.semesterCounts || []).length === 0 ? (
-                        <p className="text-sm text-gray-500">No data available.</p>
-                      ) : (
-                        analytics.semesterCounts.map((row) => (
-                          <div key={row.semester} className="flex items-center justify-between text-sm font-medium text-gray-700">
-                            <span>Semester {row.semester || '—'}</span>
-                            <span className="font-bold text-gray-900">{row.count}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  {isIseStaff && (
-                    <div className="p-4 rounded-xl border border-gray-100">
-                      <h3 className="text-sm font-bold text-gray-900 mb-3">Department Distribution</h3>
-                      <div className="space-y-2">
-                        {(analytics?.departmentCounts || []).length === 0 ? (
-                          <p className="text-sm text-gray-500">No data available.</p>
-                        ) : (
-                          analytics.departmentCounts.map((row) => (
-                            <div key={row.department || 'NA'} className="flex items-center justify-between text-sm font-medium text-gray-700">
-                              <span>{row.department || '—'}</span>
-                              <span className="font-bold text-gray-900">{row.count}</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="p-4 rounded-xl border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                      Popular Open Electives
-                    </h3>
-                    <div className="space-y-2">
-                      {(analytics?.openElectivePopular || []).length === 0 ? (
-                        <p className="text-sm text-gray-500">No open elective selections yet.</p>
-                      ) : (
-                        analytics.openElectivePopular.map((row) => (
-                          <div key={row.subjectId} className="flex items-center justify-between text-sm font-medium text-gray-700">
-                            <span className="truncate pr-4" title={row.title}>{row.title}</span>
-                            <span className="font-bold text-gray-900 flex-shrink-0">{row.selectionCount} <span className="text-xs text-gray-400 ml-1">/ {row.maxSeats}</span></span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  {isIseStaff && (
-                    <div className="p-4 rounded-xl border border-gray-100">
-                      <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-primary" />
-                        Popular Dept Electives
-                      </h3>
-                      <div className="space-y-2">
-                        {(analytics?.deptElectivePopular || []).length === 0 ? (
-                          <p className="text-sm text-gray-500">No department elective selections yet.</p>
-                        ) : (
-                          analytics.deptElectivePopular.map((row) => (
-                            <div key={row.subjectId} className="flex items-center justify-between text-sm font-medium text-gray-700">
-                              <span className="truncate pr-4" title={row.title}>{row.title}</span>
-                              <span className="font-bold text-gray-900 flex-shrink-0">{row.selectionCount} <span className="text-xs text-gray-400 ml-1">/ {row.maxSeats}</span></span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Analytics Charts */}
+                <AnalyticsCharts analytics={analytics} isIseStaff={isIseStaff} />
               </div>
             )}
           </div>

@@ -3,7 +3,8 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { AlertCircle, BarChart3, TrendingUp, Filter } from 'lucide-react';
+import { AlertCircle, BarChart3, TrendingUp, Filter, Users, UserCheck, Activity, BookOpen, Layers, Percent } from 'lucide-react';
+import { AnalyticsCharts } from '../components/AnalyticsCharts';
 
 const SystemAdmin = () => {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ const SystemAdmin = () => {
     setAnalyticsError(null);
     try {
       const data = await api.getAdminAnalytics({
-        limit: 5,
+        limit: 1000,
         type: filterType || undefined,
         semester: filterSemester || undefined,
         academicYear: filterAcademicYear || undefined,
@@ -50,14 +51,6 @@ const SystemAdmin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, filterSemester, filterAcademicYear, filterSessionId]);
 
-  const analyticsCards = [
-    { label: 'Total Students', value: analytics?.totalStudents ?? 0 },
-    { label: 'Eligible Students', value: analytics?.eligibleStudents ?? 0 },
-    { label: 'Ineligible Students', value: analytics?.ineligibleStudents ?? 0 },
-    { label: 'Open Elective Participants', value: analytics?.openElectiveParticipants ?? 0 },
-    { label: 'Dept Elective Participants', value: analytics?.deptElectiveParticipants ?? 0 },
-  ];
-
   // Compute unique dropdown options from loaded sessions
   const uniqueAcademicYears = [...new Set(sessions.map(s => s.academicYear))].filter(Boolean);
   const uniqueSemesters = [...new Set(sessions.map(s => s.semester))].filter(Boolean).sort((a,b) => a-b);
@@ -69,6 +62,36 @@ const SystemAdmin = () => {
     if (filterAcademicYear && s.academicYear !== filterAcademicYear) return false;
     return true;
   });
+
+  const activeSessionsCount = filteredSessions.filter(s => s.active).length;
+  const totalSubjectsCount = filteredSessions.reduce((acc, curr) => acc + (curr.subjectCount || 0), 0);
+  const totalRegistrations = (analytics?.openElectiveParticipants ?? 0) + (analytics?.deptElectiveParticipants ?? 0);
+  
+  // Seat Utilization Calculation
+  const openElectives = analytics?.openElectivePopular || [];
+  const deptElectives = analytics?.deptElectivePopular || [];
+  const allElectives = [...openElectives, ...deptElectives];
+  const totalMaxSeats = allElectives.reduce((acc, curr) => acc + (curr.maxSeats || 0), 0);
+  const totalFilledSeats = allElectives.reduce((acc, curr) => acc + (curr.filledSeats || 0), 0);
+  
+  const seatUtilizationRaw = totalMaxSeats > 0 ? (totalFilledSeats / totalMaxSeats) * 100 : 0;
+  let seatUtilizationFormatted = '0%';
+  if (seatUtilizationRaw > 0 && seatUtilizationRaw < 10) {
+    seatUtilizationFormatted = `${seatUtilizationRaw.toFixed(1)}%`;
+  } else if (seatUtilizationRaw >= 10) {
+    seatUtilizationFormatted = `${Math.round(seatUtilizationRaw)}%`;
+  }
+
+  const analyticsCards = [
+    { label: 'Total Students', value: analytics?.totalStudents ?? 0, icon: Users },
+    { label: 'Eligible Students', value: analytics?.eligibleStudents ?? 0, icon: UserCheck },
+    { label: 'Active Sessions', value: activeSessionsCount, icon: Activity },
+    { label: 'Total Subjects', value: totalSubjectsCount, icon: BookOpen },
+    { label: 'Total Registrations', value: totalRegistrations, icon: Layers },
+    { label: 'Seat Utilization', value: seatUtilizationFormatted, icon: Percent },
+  ];
+
+  // Pre-computed derived fields are above
 
   return (
     <div className="min-h-screen flex bg-gray-50/50">
@@ -164,14 +187,23 @@ const SystemAdmin = () => {
             <div className="p-8 text-center text-gray-500 font-medium">Loading analytics...</div>
           ) : (
             <div className="p-6 space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                {analyticsCards.map((card) => (
-                  <div key={card.label} className="p-4 rounded-xl border border-gray-100 bg-gray-50/40">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{card.label}</p>
-                    <p className="mt-2 text-2xl font-black text-gray-900">{card.value}</p>
-                  </div>
-                ))}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                {analyticsCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.label} className="p-4 rounded-xl border border-gray-100 bg-gray-50/40">
+                      <div className="flex items-center gap-2 text-gray-500 mb-2">
+                        <Icon className="w-4 h-4" />
+                        <p className="text-xs font-bold uppercase tracking-wide">{card.label}</p>
+                      </div>
+                      <p className="text-2xl font-black text-gray-900">{card.value}</p>
+                    </div>
+                  );
+                })}
               </div>
+
+              {/* Data Visualization Charts */}
+              <AnalyticsCharts analytics={analytics} isIseStaff={true} />
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="p-4 rounded-xl border border-gray-100">
@@ -206,44 +238,7 @@ const SystemAdmin = () => {
                 </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="p-4 rounded-xl border border-gray-100">
-                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    Open Elective Participation
-                  </h3>
-                  <div className="space-y-2">
-                    {(analytics?.openElectivePopular || []).length === 0 ? (
-                      <p className="text-sm text-gray-500">No open elective selections yet.</p>
-                    ) : (
-                      analytics.openElectivePopular.map((row) => (
-                        <div key={row.subjectId} className="flex items-center justify-between text-sm font-medium text-gray-700">
-                          <span>{row.title}</span>
-                          <span className="font-bold text-gray-900">{row.selectionCount}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl border border-gray-100">
-                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    Dept Elective Participation
-                  </h3>
-                  <div className="space-y-2">
-                    {(analytics?.deptElectivePopular || []).length === 0 ? (
-                      <p className="text-sm text-gray-500">No department elective selections yet.</p>
-                    ) : (
-                      analytics.deptElectivePopular.map((row) => (
-                        <div key={row.subjectId} className="flex items-center justify-between text-sm font-medium text-gray-700">
-                          <span>{row.title}</span>
-                          <span className="font-bold text-gray-900">{row.selectionCount}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
+              {/* Removed redundant text lists since charts now handle it gracefully */}
             </div>
           )}
         </div>

@@ -3,7 +3,8 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { BarChart3, Users, UserCheck, UserX, BookCheck, Layers3, Filter } from 'lucide-react';
+import { BarChart3, Users, UserCheck, Activity, BookOpen, Layers, Percent, Filter } from 'lucide-react';
+import { AnalyticsCharts } from '../components/AnalyticsCharts';
 
 const SuperAdmin = () => {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ const SuperAdmin = () => {
       setLoading(true);
       try {
         const data = await api.getAdminAnalytics({
-          limit: 5,
+          limit: 1000,
           type: filterType || undefined,
           semester: filterSemester || undefined,
           academicYear: filterAcademicYear || undefined,
@@ -47,14 +48,6 @@ const SuperAdmin = () => {
     fetchAnalytics();
   }, [filterType, filterSemester, filterAcademicYear, filterSessionId]);
 
-  const cards = [
-    { label: 'Total Students', value: analytics?.totalStudents ?? 0, icon: Users },
-    { label: 'Eligible Students', value: analytics?.eligibleStudents ?? 0, icon: UserCheck },
-    { label: 'Ineligible Students', value: analytics?.ineligibleStudents ?? 0, icon: UserX },
-    { label: 'Open Elective Participants', value: analytics?.openElectiveParticipants ?? 0, icon: BookCheck },
-    { label: 'Dept Elective Participants', value: analytics?.deptElectiveParticipants ?? 0, icon: Layers3 },
-  ];
-
   // Compute unique dropdown options from loaded sessions
   const uniqueAcademicYears = [...new Set(sessions.map(s => s.academicYear))].filter(Boolean);
   const uniqueSemesters = [...new Set(sessions.map(s => s.semester))].filter(Boolean).sort((a,b) => a-b);
@@ -66,6 +59,34 @@ const SuperAdmin = () => {
     if (filterAcademicYear && s.academicYear !== filterAcademicYear) return false;
     return true;
   });
+
+  const activeSessionsCount = filteredSessions.filter(s => s.active).length;
+  const totalSubjectsCount = filteredSessions.reduce((acc, curr) => acc + (curr.subjectCount || 0), 0);
+  const totalRegistrations = (analytics?.openElectiveParticipants ?? 0) + (analytics?.deptElectiveParticipants ?? 0);
+  
+  // Seat Utilization Calculation
+  const openElectives = analytics?.openElectivePopular || [];
+  const deptElectives = analytics?.deptElectivePopular || [];
+  const allElectives = [...openElectives, ...deptElectives];
+  const totalMaxSeats = allElectives.reduce((acc, curr) => acc + (curr.maxSeats || 0), 0);
+  const totalFilledSeats = allElectives.reduce((acc, curr) => acc + (curr.filledSeats || 0), 0);
+  
+  const seatUtilizationRaw = totalMaxSeats > 0 ? (totalFilledSeats / totalMaxSeats) * 100 : 0;
+  let seatUtilizationFormatted = '0%';
+  if (seatUtilizationRaw > 0 && seatUtilizationRaw < 10) {
+    seatUtilizationFormatted = `${seatUtilizationRaw.toFixed(1)}%`;
+  } else if (seatUtilizationRaw >= 10) {
+    seatUtilizationFormatted = `${Math.round(seatUtilizationRaw)}%`;
+  }
+
+  const cards = [
+    { label: 'Total Students', value: analytics?.totalStudents ?? 0, icon: Users },
+    { label: 'Eligible Students', value: analytics?.eligibleStudents ?? 0, icon: UserCheck },
+    { label: 'Active Sessions', value: activeSessionsCount, icon: Activity },
+    { label: 'Total Subjects', value: totalSubjectsCount, icon: BookOpen },
+    { label: 'Total Registrations', value: totalRegistrations, icon: Layers },
+    { label: 'Seat Utilization', value: seatUtilizationFormatted, icon: Percent },
+  ];
 
   return (
     <div className="min-h-screen flex bg-gray-50/50">
@@ -144,19 +165,24 @@ const SuperAdmin = () => {
           {loading ? (
             <div className="p-8 text-center text-gray-500 font-medium">Loading summary...</div>
           ) : (
-            <div className="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {cards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.label} className="p-4 rounded-xl border border-gray-100 bg-gray-50/40">
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Icon className="w-4 h-4" />
-                      <p className="text-xs font-bold uppercase tracking-wide">{card.label}</p>
+            <div className="p-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6 mb-8">
+                {cards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.label} className="p-4 rounded-xl border border-gray-100 bg-gray-50/40">
+                      <div className="flex items-center gap-2 text-gray-500 mb-2">
+                        <Icon className="w-4 h-4" />
+                        <p className="text-xs font-bold uppercase tracking-wide">{card.label}</p>
+                      </div>
+                      <p className="text-2xl font-black text-gray-900">{card.value}</p>
                     </div>
-                    <p className="mt-2 text-2xl font-black text-gray-900">{card.value}</p>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Data Visualization Charts */}
+              <AnalyticsCharts analytics={analytics} isIseStaff={true} />
             </div>
           )}
         </div>
