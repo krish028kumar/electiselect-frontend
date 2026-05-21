@@ -34,6 +34,7 @@ api.completeProfile = (data) => api.post("/user/complete-profile", data);
 api.getOpenElectives = () => api.get("/student/available-subjects");
 api.getOpenStatus = () => api.get("/electives/open/status");
 api.getMySelection = () => api.get("/student/my-selection");
+api.getMySelections = () => api.get("/student/my-selections");
 api.selectOpenElective = (subjectId) => api.post(`/student/register/${subjectId}`);
 api.getDeptElectives = () => api.get("/electives/dept");
 api.getDeptStatus = () => api.get("/electives/dept/status");
