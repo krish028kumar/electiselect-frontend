@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logo from '../logo.png';
+import logo from '../assets/dsce-logo.jpg';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { 
@@ -400,7 +400,7 @@ const Register = () => {
 
         {/* Header */}
         <div className="mb-10 text-center flex flex-col items-center">
-          <img src={logo} alt="ElectiSelect Logo" className="w-14 h-14 rounded-2xl mb-4 shadow-md" />
+          <img src={logo} alt="DSCE Logo" className="w-14 h-14 rounded-2xl mb-4 shadow-md object-contain" />
           <h2 className="text-[11px] font-bold text-primary tracking-[0.25em] uppercase mb-1.5">ElectiSelect</h2>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Create your account</h1>
         </div>

@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Layers, LogOut, Settings, Users, Database } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import logo from '../logo.png';
+import logo from '../assets/dsce-logo.jpg';
 import Avatar from './Avatar';
 
 const Sidebar = ({ active, role: propRole, user: propUser }) => {
@@ -59,7 +59,7 @@ const Sidebar = ({ active, role: propRole, user: propUser }) => {
     <div className={`w-64 h-screen bg-white shadow-md fixed ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} top-0 flex flex-col justify-between z-10 hidden md:flex`}>
       <div>
         <div className="p-6 flex items-center gap-3">
-          <img src={logo} alt="ElectiSelect Logo" className="w-10 h-10 rounded-xl shadow-sm" />
+          <img src={logo} alt="DSCE Logo" className="w-10 h-10 rounded-xl shadow-sm object-contain" />
           <div>
             <h1 className="text-xl font-bold text-primary">ElectiSelect</h1>
             <p className="text-[10px] text-secondary font-medium tracking-wide uppercase italic">Academic Curator</p>

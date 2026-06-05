@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
-import logo from '../logo.png';
+import logo from '../assets/dsce-logo.jpg';
 import ForgotPasswordModal from '../components/ForgotPasswordModal';
 import { motion } from 'framer-motion';
 
@@ -52,7 +52,7 @@ const Login = () => {
         
         {/* Top Section */}
         <div className="mb-10 text-center flex flex-col items-center">
-          <img src={logo} alt="ElectiSelect Logo" className="w-16 h-16 rounded-2xl mb-5 shadow-lg border border-gray-50" />
+          <img src={logo} alt="DSCE Logo" className="w-16 h-16 rounded-2xl mb-5 shadow-lg border border-gray-50 object-contain" />
           <h1 className="text-3xl font-black text-primary tracking-tight mb-2">ElectiSelect</h1>
           <h2 className="text-[11px] font-bold text-gray-400 tracking-[0.3em] uppercase mb-4">The Academic Curator</h2>
           <p className="text-gray-500 text-[14px] font-medium leading-relaxed">Smart Elective Selection<br/>for Smart Students</p>

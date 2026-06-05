@@ -3,7 +3,7 @@ import { Bell, User, Settings, LogOut, CheckCircle2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import logo from '../logo.png';
+import logo from '../assets/dsce-logo.jpg';
 import EditProfileModal from './EditProfileModal';
 import SettingsModal from './SettingsModal';
 import Avatar from './Avatar';
@@ -65,7 +65,7 @@ const Navbar = ({ user: propUser }) => {
 
       <div className="h-20 bg-transparent flex items-center justify-between px-4 md:px-8 mb-4 relative z-40">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="ElectiSelect Logo" className="w-8 h-8 rounded-xl md:hidden shadow-sm" />
+          <img src={logo} alt="DSCE Logo" className="w-8 h-8 rounded-xl md:hidden shadow-sm object-contain" />
           <div>
             <h2 className="text-lg sm:text-2xl font-bold text-primary">{t('welcomeBack')}, {user?.name || 'Student'} {emoji}</h2>
             <p className="text-xs sm:text-sm text-secondary mt-1 hidden sm:block">{t('academicJourney')}</p>
